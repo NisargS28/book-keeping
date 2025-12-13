@@ -243,7 +243,7 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                     ) : (
                       <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                        No expense data available
+                        No expense data availabl
                       </div>
                     )}
                   </CardContent>
