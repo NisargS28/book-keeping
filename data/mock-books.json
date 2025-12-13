@@ -1,0 +1,22 @@
+[
+  {
+    "id": "book-1",
+    "userId": "user-1",
+    "name": "Personal Finance",
+    "description": "My personal expenses and income",
+    "currency": "USD",
+    "balance": 2450.0,
+    "createdAt": "2024-01-15T10:00:00Z",
+    "updatedAt": "2024-12-10T15:30:00Z"
+  },
+  {
+    "id": "book-2",
+    "userId": "user-1",
+    "name": "Business Account",
+    "description": "Freelance business tracking",
+    "currency": "USD",
+    "balance": 8750.5,
+    "createdAt": "2024-02-20T08:00:00Z",
+    "updatedAt": "2024-12-12T09:20:00Z"
+  }
+]

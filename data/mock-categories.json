@@ -1,0 +1,50 @@
+[
+  {
+    "id": "cat-1",
+    "bookId": "book-1",
+    "name": "Salary",
+    "type": "income",
+    "color": "#10b981",
+    "createdAt": "2024-01-15T10:05:00Z"
+  },
+  {
+    "id": "cat-2",
+    "bookId": "book-1",
+    "name": "Groceries",
+    "type": "expense",
+    "color": "#ef4444",
+    "createdAt": "2024-01-15T10:06:00Z"
+  },
+  {
+    "id": "cat-3",
+    "bookId": "book-1",
+    "name": "Transportation",
+    "type": "expense",
+    "color": "#f59e0b",
+    "createdAt": "2024-01-15T10:07:00Z"
+  },
+  {
+    "id": "cat-4",
+    "bookId": "book-1",
+    "name": "Entertainment",
+    "type": "expense",
+    "color": "#8b5cf6",
+    "createdAt": "2024-01-15T10:08:00Z"
+  },
+  {
+    "id": "cat-5",
+    "bookId": "book-2",
+    "name": "Client Payment",
+    "type": "income",
+    "color": "#10b981",
+    "createdAt": "2024-02-20T08:05:00Z"
+  },
+  {
+    "id": "cat-6",
+    "bookId": "book-2",
+    "name": "Office Supplies",
+    "type": "expense",
+    "color": "#ef4444",
+    "createdAt": "2024-02-20T08:06:00Z"
+  }
+]

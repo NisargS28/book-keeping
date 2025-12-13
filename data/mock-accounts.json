@@ -1,0 +1,26 @@
+[
+  {
+    "id": "acc-1",
+    "bookId": "book-1",
+    "name": "Main Checking",
+    "type": "bank",
+    "balance": 5420.5,
+    "createdAt": "2024-01-15T10:10:00Z"
+  },
+  {
+    "id": "acc-2",
+    "bookId": "book-1",
+    "name": "Wallet Cash",
+    "type": "cash",
+    "balance": 150.0,
+    "createdAt": "2024-01-15T10:11:00Z"
+  },
+  {
+    "id": "acc-3",
+    "bookId": "book-2",
+    "name": "Business Checking",
+    "type": "bank",
+    "balance": 12340.75,
+    "createdAt": "2024-02-20T08:10:00Z"
+  }
+]
