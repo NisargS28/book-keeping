@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { AppHeader } from "@/components/app-header"
 import { getCurrentUser, logout, updateUserProfile } from "@/lib/auth"
 import {
@@ -215,18 +216,18 @@ export default function SettingsPage() {
       <AppSidebar />
       <div className="flex flex-col flex-1">
         <AppHeader activeBookId={activeBookId} />
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <div className="flex-1 overflow-auto pb-20 md:pb-0">
+          <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
             <div>
-              <h1 className="text-3xl font-bold">Settings</h1>
-              <p className="text-gray-500">Manage your preferences and categories</p>
+              <h1 className="text-2xl md:text-3xl font-bold">Settings</h1>
+              <p className="text-sm md:text-base text-gray-500">Manage your preferences and categories</p>
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="categories">Categories</TabsTrigger>
+                <TabsTrigger value="profile" className="text-xs md:text-sm">Profile</TabsTrigger>
+                <TabsTrigger value="general" className="text-xs md:text-sm">General</TabsTrigger>
+                <TabsTrigger value="categories" className="text-xs md:text-sm">Categories</TabsTrigger>
               </TabsList>
 
               {/* Profile Tab */}
@@ -439,6 +440,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      <MobileNav />
     </div>
   )
 }

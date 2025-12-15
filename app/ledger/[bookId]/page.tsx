@@ -4,13 +4,15 @@ import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { getBook, getEntries, getCategories, type Entry, type Category } from "@/lib/store"
-import { ArrowLeft, Plus, Minus, Search, Edit2 } from "lucide-react"
+import { ArrowLeft, Plus, Minus, Search, Edit2, Filter } from "lucide-react"
 import { format } from "date-fns"
 import { EntryDialog } from "@/components/entry-dialog"
 
@@ -27,6 +29,7 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
   const [entryDialogOpen, setEntryDialogOpen] = useState(false)
   const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null)
   const [dialogType, setDialogType] = useState<"income" | "expense">("income")
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
 
   const loadData = async () => {
     const bookData = await getBook(bookId)
@@ -113,23 +116,24 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
     <AuthGuard>
       <div className="flex min-h-screen flex-col bg-background">
         {/* Header */}
-        <div className="border-b bg-card">
-          <div className="container flex h-16 items-center justify-between px-6">
+        <div className="sticky top-0 z-10 border-b bg-card">
+          <div className="container flex h-auto min-h-16 flex-col gap-3 px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:px-6 md:py-0">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => router.push("/books")}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-semibold">{book.name}</h1>
-                {book.description && <p className="text-sm text-muted-foreground">{book.description}</p>}
+                <h1 className="text-lg md:text-xl font-semibold">{book.name}</h1>
+                {book.description && <p className="text-xs md:text-sm text-muted-foreground">{book.description}</p>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={handleAddCashIn} className="gap-2 bg-green-600 hover:bg-green-700">
+            {/* Desktop buttons */}
+            <div className="hidden md:flex items-center gap-2">
+              <Button onClick={handleAddCashIn} className="gap-2 bg-green-600 hover:bg-green-700 text-sm">
                 <Plus className="h-4 w-4" />
                 Cash In
               </Button>
-              <Button onClick={handleAddCashOut} variant="destructive" className="gap-2">
+              <Button onClick={handleAddCashOut} variant="destructive" className="gap-2 text-sm">
                 <Minus className="h-4 w-4" />
                 Cash Out
               </Button>
@@ -137,12 +141,26 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
           </div>
         </div>
 
+        {/* Mobile sticky buttons at bottom */}
+        <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 border-t bg-card p-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <Button onClick={handleAddCashIn} className="flex-1 gap-2 bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4" />
+              Cash In
+            </Button>
+            <Button onClick={handleAddCashOut} variant="destructive" className="flex-1 gap-2">
+              <Minus className="h-4 w-4" />
+              Cash Out
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-4 md:p-6 pb-32 md:pb-20">
           <div className="container mx-auto max-w-7xl space-y-6">
-            {/* Summary Bar */}
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Summary Bar - Desktop */}
+            <div className="hidden md:grid gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash In</CardTitle>
@@ -171,10 +189,34 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
               </Card>
             </div>
 
-            {/* Filters & Search */}
-            <Card>
+            {/* Summary Bar - Mobile Compact */}
+            <Card className="md:hidden">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 text-center">
+                    <div className="text-xs text-muted-foreground mb-1">In (+)</div>
+                    <div className="text-base font-bold text-green-600">{formatCurrency(totalIncome)}</div>
+                  </div>
+                  <div className="h-10 w-px bg-border" />
+                  <div className="flex-1 text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Out (-)</div>
+                    <div className="text-base font-bold text-red-600">{formatCurrency(totalExpense)}</div>
+                  </div>
+                  <div className="h-10 w-px bg-border" />
+                  <div className="flex-1 text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Net</div>
+                    <div className={`text-base font-bold ${book.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {formatCurrency(book.balance)}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Filters & Search - Desktop */}
+            <Card className="hidden md:block">
               <CardHeader>
-                <CardTitle>Filters & Search</CardTitle>
+                <CardTitle className="text-base md:text-lg">Filters & Search</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-4">
@@ -224,12 +266,85 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
               </CardContent>
             </Card>
 
+            {/* Filters & Search - Mobile Compact */}
+            <div className="md:hidden flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="shrink-0">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-auto">
+                  <SheetHeader>
+                    <SheetTitle>Filters</SheetTitle>
+                  </SheetHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Type</label>
+                      <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="income">Cash In</SelectItem>
+                          <SelectItem value="expense">Cash Out</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Category</label>
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setSearchQuery("")
+                          setTypeFilter("all")
+                          setCategoryFilter("all")
+                          setFilterSheetOpen(false)
+                        }}
+                      >
+                        Clear All
+                      </Button>
+                      <Button className="flex-1" onClick={() => setFilterSheetOpen(false)}>
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
             {/* Transactions Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Ledger Entries ({filteredEntries.length})</CardTitle>
+                <CardTitle className="text-base md:text-lg">Ledger Entries ({filteredEntries.length})</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 md:p-6">
                 {filteredEntries.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
                     No entries found. Add your first transaction to get started.
@@ -239,13 +354,13 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date & Time</TableHead>
-                          <TableHead>Remarks</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Payment Mode</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="text-right">Running Balance</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead className="whitespace-nowrap">Date & Time</TableHead>
+                          <TableHead className="whitespace-nowrap">Remarks</TableHead>
+                          <TableHead className="whitespace-nowrap">Category</TableHead>
+                          <TableHead className="whitespace-nowrap">Payment Mode</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Amount</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Running Balance</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

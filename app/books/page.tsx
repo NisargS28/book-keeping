@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -121,16 +122,16 @@ export default function BooksPage() {
         <AppHeader activeBookId={null} />
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 overflow-auto bg-background p-6">
+          <main className="flex-1 overflow-auto bg-background p-4 md:p-6 pb-20 md:pb-6">
           <div className="mx-auto max-w-6xl space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">My Books</h1>
-                <p className="text-muted-foreground">Select a book to view its ledger</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Books</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Select a book to view its ledger</p>
               </div>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2">
+                  <Button className="gap-2 w-full sm:w-auto">
                     <Plus className="h-4 w-4" />
                     Add New Book
                   </Button>
@@ -182,7 +183,7 @@ export default function BooksPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {books.map((book) => (
                   <Card
                     key={book.id}

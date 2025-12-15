@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUser } from "@/lib/auth"
 import { getBooks, getActiveBookId, setActiveBookId, getEntries, getCategories } from "@/lib/store"
@@ -124,16 +125,15 @@ export default function DashboardPage() {
         <AppHeader activeBookId={activeBookId} onBookChange={() => setLoading(true)} />
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 overflow-auto bg-background p-6">
+          <main className="flex-1 overflow-auto bg-background p-4 md:p-6 pb-20 md:pb-6">
             <div className="mx-auto max-w-7xl space-y-6">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-muted-foreground">Overview of your financial activity</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Overview of your financial activity</p>
               </div>
 
               {/* Stats Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">\n                <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
                     <IndianRupee className="h-4 w-4 text-muted-foreground" />
@@ -188,10 +188,10 @@ export default function DashboardPage() {
               <div className="grid gap-6 lg:grid-cols-7">
                 <Card className="lg:col-span-4">
                   <CardHeader>
-                    <CardTitle>Income & Expenses (Last 7 Days)</CardTitle>
+                    <CardTitle className="text-base md:text-lg">Income & Expenses (Last 7 Days)</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
+                  <CardContent className="pb-4">
+                    <ResponsiveContainer width="100%" height={250}>
                       <LineChart data={last7Days}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
@@ -306,6 +306,7 @@ export default function DashboardPage() {
             </div>
           </main>
         </div>
+        <MobileNav />
       </div>
     </AuthGuard>
   )
