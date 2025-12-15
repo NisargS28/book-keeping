@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUser } from "@/lib/auth"
 import { getBooks, getActiveBookId, setActiveBookId, getEntries, getCategories } from "@/lib/store"
-import { ArrowDownRight, ArrowUpRight, DollarSign, TrendingUp } from "lucide-react"
+import { ArrowDownRight, ArrowUpRight, IndianRupee, TrendingUp } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -28,13 +28,14 @@ export default function DashboardPage() {
   const router = useRouter()
   const [activeBookId, setActiveBookIdState] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<{ entries: any[]; categories: any[] }>({ entries: [], categories: [] })
 
   useEffect(() => {
     const init = async () => {
       const user = await getCurrentUser()
       if (!user) return
 
-      const books = getBooks(user.id)
+      const books = await getBooks(user.id)
       if (books.length === 0) {
         router.push("/books")
         return
@@ -52,6 +53,17 @@ export default function DashboardPage() {
     init()
   }, [router])
 
+  useEffect(() => {
+    const loadData = async () => {
+      if (activeBookId) {
+        const entries = await getEntries(activeBookId)
+        const categories = await getCategories(activeBookId)
+        setData({ entries, categories })
+      }
+    }
+    loadData()
+  }, [activeBookId])
+
   if (loading || !activeBookId) {
     return (
       <AuthGuard>
@@ -62,8 +74,8 @@ export default function DashboardPage() {
     )
   }
 
-  const entries = getEntries(activeBookId)
-  const categories = getCategories(activeBookId)
+  const entries = data.entries
+  const categories = data.categories
 
   const totalIncome = entries.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
 
@@ -124,10 +136,10 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${balance.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">₹{balance.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">Current book balance</p>
                   </CardContent>
                 </Card>
@@ -138,7 +150,7 @@ export default function DashboardPage() {
                     <ArrowUpRight className="h-4 w-4 text-success" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-success">${totalIncome.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-success">₹{totalIncome.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
                       {entries.filter((t) => t.type === "income").length} transactions
                     </p>
@@ -151,7 +163,7 @@ export default function DashboardPage() {
                     <ArrowDownRight className="h-4 w-4 text-destructive" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-destructive">${totalExpense.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-destructive">₹{totalExpense.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
                       {entries.filter((t) => t.type === "expense").length} transactions
                     </p>
@@ -165,7 +177,7 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent>
                     <div className={`text-2xl font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}>
-                      ${balance.toFixed(2)}
+                      ₹{balance.toFixed(2)}
                     </div>
                     <p className="text-xs text-muted-foreground">Income - Expenses</p>
                   </CardContent>
@@ -239,7 +251,7 @@ export default function DashboardPage() {
                               border: "1px solid hsl(var(--border))",
                               borderRadius: "8px",
                             }}
-                            formatter={(value: number) => `$${value.toFixed(2)}`}
+                            formatter={(value: number) => `₹${value.toFixed(2)}`}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -278,7 +290,7 @@ export default function DashboardPage() {
                             <div
                               className={`text-lg font-semibold ${entry.type === "income" ? "text-success" : "text-destructive"}`}
                             >
-                              {entry.type === "income" ? "+" : "-"}${entry.amount.toFixed(2)}
+                              {entry.type === "income" ? "+" : "-"}₹{entry.amount.toFixed(2)}
                             </div>
                           </div>
                         )

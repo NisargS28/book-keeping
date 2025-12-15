@@ -50,7 +50,7 @@ export default function BooksPage() {
     const user = await getCurrentUser()
     if (!user) return
 
-    const userBooks = getBooks(user.id)
+    const userBooks = await getBooks(user.id)
     setBooks(userBooks)
     setLoading(false)
   }
@@ -63,12 +63,7 @@ export default function BooksPage() {
     const user = await getCurrentUser()
     if (!user || !newBookName.trim()) return
 
-    createBook({
-      userId: user.id,
-      name: newBookName,
-      description: newBookDescription,
-      currency: "USD",
-    })
+    await createBook(user.id, newBookName, "INR", newBookDescription)
 
     setNewBookName("")
     setNewBookDescription("")
@@ -80,10 +75,10 @@ export default function BooksPage() {
     router.push(`/ledger/${bookId}`)
   }
 
-  const handleEditBook = () => {
+  const handleEditBook = async () => {
     if (!bookToEdit || !editBookName.trim()) return
 
-    updateBook(bookToEdit.id, {
+    await updateBook(bookToEdit.id, {
       name: editBookName,
       description: editBookDescription,
     })
@@ -95,18 +90,18 @@ export default function BooksPage() {
     loadBooks()
   }
 
-  const handleDeleteBook = () => {
+  const handleDeleteBook = async () => {
     if (!bookToDelete) return
-    deleteBook(bookToDelete)
+    await deleteBook(bookToDelete)
     setDeleteDialogOpen(false)
     setBookToDelete(null)
     loadBooks()
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount)
   }
 

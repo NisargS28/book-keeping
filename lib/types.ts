@@ -1,8 +1,18 @@
 export interface User {
   id: string
   email: string
-  name: string
+  displayName: string
+  profileImage?: string
   createdAt: string
+}
+
+export interface UserProfile {
+  id: string
+  userId: string
+  displayName: string
+  profileImage?: string
+  bio?: string
+  updatedAt: string
 }
 
 export interface Book {

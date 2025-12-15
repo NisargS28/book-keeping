@@ -25,6 +25,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   const [amount, setAmount] = useState("")
   const [categoryId, setCategoryId] = useState("")
   const [paymentMode, setPaymentMode] = useState("")
+  const [date, setDate] = useState("")
+  const [time, setTime] = useState("")
   const [saving, setSaving] = useState(false)
   const [showNewCategory, setShowNewCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -45,13 +47,22 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       setAmount(entry.amount.toString())
       setCategoryId(entry.categoryId)
       setPaymentMode(entry.paymentMode || "")
+      
+      // Parse date and time from entry.date
+      const entryDate = new Date(entry.date)
+      setDate(entryDate.toISOString().split('T')[0])
+      setTime(entryDate.toTimeString().slice(0, 5))
     } else if (open) {
-      // Reset form for new entry
+      // Reset form for new entry with current date/time
       setType("expense")
       setDescription("")
       setAmount("")
       setCategoryId("")
       setPaymentMode("")
+      
+      const now = new Date()
+      setDate(now.toISOString().split('T')[0])
+      setTime(now.toTimeString().slice(0, 5))
     }
   }, [open, entry])
 
@@ -60,7 +71,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
 
     try {
       setSavingCategory(true)
-      const newCategory = createCategory({
+      const newCategory = await createCategory({
         bookId,
         name: newCategoryName,
         color: newCategoryColor,
@@ -78,20 +89,25 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   }
 
   const handleSaveEntry = async () => {
-    if (!description.trim() || !amount || !categoryId) {
+    if (!description.trim() || !amount || !categoryId || !date || !time) {
       alert("Please fill in all fields")
       return
     }
 
     try {
       setSaving(true)
+      
+      // Combine date and time into ISO string
+      const dateTimeString = `${date}T${time}:00.000Z`
+      
       if (isEditing && entry) {
-        updateEntry(entry.id, {
+        await updateEntry(entry.id, {
           description,
           amount: parseFloat(amount),
           categoryId,
           paymentMode: paymentMode || "",
           type,
+          date: dateTimeString,
         })
       } else {
         await createEntry({
@@ -101,7 +117,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
           amount: parseFloat(amount),
           type,
           paymentMode: paymentMode || "",
-          date: new Date().toISOString(),
+          date: dateTimeString,
         })
       }
 
@@ -126,7 +142,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
 
     try {
       setDeletingEntry(true)
-      deleteEntry(entry.id)
+      await deleteEntry(entry.id)
       onOpenChange(false)
       onEntryCreated()
     } catch (error) {
@@ -254,6 +270,27 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
               value={paymentMode}
               onChange={(e) => setPaymentMode(e.target.value)}
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Date</label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Time</label>
+              <Input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="flex gap-2">

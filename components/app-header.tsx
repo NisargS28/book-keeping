@@ -21,11 +21,15 @@ interface AppHeaderProps {
 
 export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
   const router = useRouter()
-  const [email, setEmail] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
   useEffect(() => {
     const load = async () => {
       const user = await getCurrentUser()
-      setEmail(user?.email ?? null)
+      if (user) {
+        setDisplayName(user.displayName)
+        setProfileImage(user.profileImage || null)
+      }
     }
     load()
   }, [])
@@ -67,14 +71,19 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
               <User className="h-4 w-4" />
-              <span>{email ?? ""}</span>
+              <span>{displayName ?? "User"}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem disabled>
               <User className="mr-2 h-4 w-4" />
-              {email ?? ""}
+              {displayName ?? "User"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <User className="mr-2 h-4 w-4" />
+              Edit Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

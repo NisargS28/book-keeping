@@ -28,16 +28,16 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
   const [entryToEdit, setEntryToEdit] = useState<Entry | null>(null)
   const [dialogType, setDialogType] = useState<"income" | "expense">("income")
 
-  const loadData = () => {
-    const bookData = getBook(bookId)
+  const loadData = async () => {
+    const bookData = await getBook(bookId)
     if (!bookData) {
       router.push("/books")
       return
     }
 
     setBook(bookData)
-    const bookEntries = getEntries(bookId)
-    const bookCategories = getCategories(bookId)
+    const bookEntries = await getEntries(bookId)
+    const bookCategories = await getCategories(bookId)
     setEntries(bookEntries)
     setFilteredEntries(bookEntries)
     setCategories(bookCategories)
@@ -76,9 +76,9 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
   const totalExpense = entries.filter((e) => e.type === "expense").reduce((sum, e) => sum + e.amount, 0)
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount)
   }
 

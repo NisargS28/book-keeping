@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppSidebar } from "@/components/app-sidebar"
 import { AppHeader } from "@/components/app-header"
-import { getCurrentUser, logout } from "@/lib/auth"
+import { getCurrentUser, logout, updateUserProfile } from "@/lib/auth"
 import {
   getBooks,
   getActiveBookId,
@@ -28,15 +28,25 @@ import {
   createCategory,
   deleteCategory,
 } from "@/lib/store"
-import { Trash2, Plus } from "lucide-react"
+import { Trash2, Plus, AlertCircle } from "lucide-react"
 import { Category } from "@/lib/types"
 
 export default function SettingsPage() {
   const router = useRouter()
+  const [user, setUser] = useState<any>(null)
   const [activeBookId, setActiveBookIdState] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system")
+
+  // Profile edit state
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [editDisplayName, setEditDisplayName] = useState("")
+  const [editProfileImage, setEditProfileImage] = useState("")
+  const [editBio, setEditBio] = useState("")
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileError, setProfileError] = useState("")
+  const [tableWarning, setTableWarning] = useState(false)
 
   // Category dialog
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
@@ -52,13 +62,22 @@ export default function SettingsPage() {
 
   const loadData = async () => {
     try {
-      const user = await getCurrentUser()
-      if (!user) {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
         router.push("/login")
         return
       }
 
-      const books = await getBooks(user.id)
+      setUser(currentUser)
+      setEditDisplayName(currentUser.displayName)
+      setEditProfileImage(currentUser.profileImage || "")
+      
+      // Check if using fallback display name (indicates no profile table)
+      if (currentUser.displayName === currentUser.email?.split('@')[0]) {
+        setTableWarning(true)
+      }
+
+      const books = await getBooks(currentUser.id)
       if (books.length === 0) {
         router.push("/books")
         return
@@ -104,6 +123,32 @@ export default function SettingsPage() {
     setTheme(newTheme)
     localStorage.setItem("theme", newTheme)
     applyTheme(newTheme)
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!user || !editDisplayName.trim()) return
+
+    try {
+      setSavingProfile(true)
+      setProfileError("")
+      await updateUserProfile(user.id, {
+        displayName: editDisplayName,
+        profileImage: editProfileImage || undefined,
+      })
+      setUser({
+        ...user,
+        displayName: editDisplayName,
+        profileImage: editProfileImage || undefined,
+      })
+      setProfileDialogOpen(false)
+      // Reload the page to update the header
+      window.location.reload()
+    } catch (error: any) {
+      console.error("Error updating profile:", error)
+      setProfileError(error?.message || "Failed to update profile. Please make sure the user_profiles table exists in Supabase.")
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const handleCreateCategory = async () => {
@@ -183,11 +228,87 @@ export default function SettingsPage() {
               <p className="text-gray-500">Manage your preferences and categories</p>
             </div>
 
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            {tableWarning && (
+              <div className="border border-destructive bg-destructive/10 text-destructive rounded-lg p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Profile Table Not Found</h3>
+                    <p className="text-sm">
+                      The user_profiles table doesn't exist in your Supabase database. 
+                      Please run the SQL migration from <code className="text-xs bg-black/20 px-1 py-0.5 rounded">PROFILE_SETUP.md</code> to enable profile features.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="categories">Categories</TabsTrigger>
               </TabsList>
+
+              {/* Profile Tab */}
+              <TabsContent value="profile" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile</CardTitle>
+                    <CardDescription>Manage your profile information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-6">
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                        {editDisplayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-500 mb-2">Display Name</p>
+                        <p className="text-xl font-semibold">{user?.displayName || "User"}</p>
+                        <p className="text-sm text-gray-500 mt-2">{user?.email}</p>
+                      </div>
+                    </div>
+
+                    <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+                      <Button onClick={() => setProfileDialogOpen(true)} className="w-full">
+                        Edit Profile
+                      </Button>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Profile</DialogTitle>
+                          <DialogDescription>Update your profile information</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">Display Name</label>
+                            <Input
+                              placeholder="Your display name"
+                              value={editDisplayName}
+                              onChange={(e) => setEditDisplayName(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Profile Image URL (Optional)</label>
+                            <Input
+                              placeholder="https://example.com/image.jpg"
+                              value={editProfileImage}
+                              onChange={(e) => setEditProfileImage(e.target.value)}
+                            />
+                          </div>
+                          {profileError && (
+                            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+                              {profileError}
+                            </div>
+                          )}
+                          <Button onClick={handleUpdateProfile} disabled={savingProfile} className="w-full">
+                            {savingProfile ? "Saving..." : "Save Changes"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               {/* General Settings Tab */}
               <TabsContent value="general" className="space-y-4">

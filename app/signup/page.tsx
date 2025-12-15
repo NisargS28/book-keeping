@@ -32,7 +32,7 @@ export default function SignupPage() {
     }
 
     try {
-      await signup(email, password)
+      await signup(email, password, name)
       router.push("/dashboard")
     } catch (err: any) {
       setError(err?.message || "Failed to sign up")
