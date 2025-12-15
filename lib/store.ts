@@ -307,6 +307,16 @@ export async function getEntry(id: string): Promise<Entry | null> {
 }
 
 export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updatedAt' | 'runningBalance'>): Promise<Entry> {
+  console.log('📝 Creating entry with data:', {
+    book_id: entry.bookId,
+    category_id: entry.categoryId,
+    description: entry.description,
+    amount: entry.amount,
+    type: entry.type,
+    payment_mode: entry.paymentMode,
+    date: entry.date,
+  })
+
   const { data, error } = await supabase
     .from('entries')
     .insert([{
@@ -321,10 +331,21 @@ export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updat
     .select()
     .single()
 
-  console.log('💸 createEntry:', { entry, data, error })
+  console.log('💸 createEntry response:', { data, error, hasError: !!error })
+  
   if (error) {
-    console.error('Error creating entry:', error)
-    throw error
+    console.error('Error creating entry:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      fullError: JSON.stringify(error)
+    })
+    throw new Error(error.message || 'Failed to create entry')
+  }
+
+  if (!data) {
+    throw new Error('No data returned from create entry')
   }
 
   return {

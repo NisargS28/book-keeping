@@ -89,7 +89,25 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   }
 
   const handleSaveEntry = async () => {
+    console.log('🔍 Checking form values:', {
+      description: description,
+      amount: amount,
+      categoryId: categoryId,
+      date: date,
+      time: time,
+      paymentMode: paymentMode,
+      type: type,
+      bookId: bookId
+    })
+
     if (!description.trim() || !amount || !categoryId || !date || !time) {
+      console.error('❌ Validation failed:', {
+        hasDescription: !!description.trim(),
+        hasAmount: !!amount,
+        hasCategoryId: !!categoryId,
+        hasDate: !!date,
+        hasTime: !!time
+      })
       alert("Please fill in all fields")
       return
     }
@@ -97,17 +115,28 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
     try {
       setSaving(true)
       
-      // Combine date and time into ISO string
-      const dateTimeString = `${date}T${time}:00.000Z`
+      // Combine date and time into ISO string for the date field (just the date part)
+      // The time is stored separately in the timestamp fields
+      const dateString = date // Keep just the date in YYYY-MM-DD format
+      
+      console.log('💾 Saving entry with:', {
+        bookId,
+        categoryId,
+        description,
+        amount: parseFloat(amount),
+        type,
+        paymentMode: paymentMode || "",
+        date: dateString
+      })
       
       if (isEditing && entry) {
         await updateEntry(entry.id, {
           description,
           amount: parseFloat(amount),
           categoryId,
-          paymentMode: paymentMode || "",
+          paymentMode: paymentMode || null,
           type,
-          date: dateTimeString,
+          date: dateString,
         })
       } else {
         await createEntry({
@@ -116,11 +145,12 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
           description,
           amount: parseFloat(amount),
           type,
-          paymentMode: paymentMode || "",
-          date: dateTimeString,
+          paymentMode: paymentMode || null,
+          date: dateString,
         })
       }
 
+      console.log('✅ Entry saved successfully')
       setDescription("")
       setAmount("")
       setCategoryId("")
@@ -128,9 +158,15 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       setType("expense")
       onOpenChange(false)
       onEntryCreated()
-    } catch (error) {
-      console.error("Error saving entry:", error)
-      alert("Failed to save entry")
+    } catch (error: any) {
+      console.error("❌ Error saving entry:", {
+        error,
+        errorMessage: error?.message,
+        errorString: String(error),
+        errorJSON: JSON.stringify(error),
+        stack: error?.stack
+      })
+      alert(`Failed to save entry: ${error?.message || 'Unknown error'}`)
     } finally {
       setSaving(false)
     }
@@ -221,7 +257,11 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={() => setShowNewCategory(true)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowNewCategory(true)
+                  }}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
@@ -245,14 +285,22 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
                       type="button"
                       variant="outline"
                       className="flex-1 text-xs"
-                      onClick={() => setShowNewCategory(false)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setShowNewCategory(false)
+                      }}
                     >
                       Cancel
                     </Button>
                     <Button
                       type="button"
                       className="flex-1 text-xs"
-                      onClick={handleCreateCategory}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleCreateCategory()
+                      }}
                       disabled={savingCategory}
                     >
                       {savingCategory ? "Creating..." : "Create"}
@@ -265,11 +313,18 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
 
           <div>
             <label className="text-sm font-medium">Payment Mode (Optional)</label>
-            <Input
-              placeholder="e.g., Cash, Card, Bank Transfer"
-              value={paymentMode}
-              onChange={(e) => setPaymentMode(e.target.value)}
-            />
+            <Select value={paymentMode} onValueChange={setPaymentMode}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="upi">UPI</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { getCurrentUser, logout } from "@/lib/auth"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -64,10 +64,12 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
-              <div className="flex items-center gap-2 border-b px-6 py-4">
-                <Book2 className="h-6 w-6 text-primary" />
-                <span className="text-xl font-semibold">CashBook</span>
-              </div>
+              <SheetHeader className="flex items-center gap-2 border-b px-6 py-4">
+                <SheetTitle className="flex items-center gap-2">
+                  <Book2 className="h-6 w-6 text-primary" />
+                  <span className="text-xl font-semibold">CashBook</span>
+                </SheetTitle>
+              </SheetHeader>
               <nav className="flex flex-col gap-1 p-4">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href

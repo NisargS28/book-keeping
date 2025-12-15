@@ -41,7 +41,7 @@ export interface Entry {
   type: "income" | "expense"
   amount: number
   description: string
-  paymentMode: string
+  paymentMode: string | null
   date: string
   notes?: string
   runningBalance: number
