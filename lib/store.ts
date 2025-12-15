@@ -27,9 +27,11 @@ export async function getBooks(userId: string): Promise<Book[]> {
   const books = await Promise.all((data || []).map(async book => {
     // Calculate balance from entries
     const entries = await getEntries(book.id)
+    console.log(`📊 Book "${book.name}" has ${entries.length} entries`)
     const balance = entries.reduce((sum, entry) => {
       return sum + (entry.type === 'income' ? entry.amount : -entry.amount)
     }, 0)
+    console.log(`💰 Book "${book.name}" calculated balance: ${balance}`)
 
     return {
       id: book.id,
@@ -240,8 +242,8 @@ export async function getEntries(bookId: string): Promise<Entry[]> {
     .from('entries')
     .select('*')
     .eq('book_id', bookId)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: true })
 
   console.log('💰 getEntries:', { bookId, count: data?.length, error })
   if (error) {
@@ -249,19 +251,29 @@ export async function getEntries(bookId: string): Promise<Entry[]> {
     throw error
   }
 
-  return (data || []).map(entry => ({
-    id: entry.id,
-    bookId: entry.book_id,
-    categoryId: entry.category_id,
-    description: entry.description,
-    amount: entry.amount,
-    type: entry.type as 'income' | 'expense',
-    paymentMode: entry.payment_mode,
-    date: entry.date,
-    runningBalance: 0, // Not stored in DB, can be calculated if needed
-    createdAt: entry.created_at,
-    updatedAt: entry.updated_at,
-  }))
+  // Calculate running balance (chronologically)
+  let runningBalance = 0
+  const entriesWithBalance = (data || []).map(entry => {
+    const amount = entry.type === 'income' ? entry.amount : -entry.amount
+    runningBalance += amount
+
+    return {
+      id: entry.id,
+      bookId: entry.book_id,
+      categoryId: entry.category_id,
+      description: entry.description,
+      amount: entry.amount,
+      type: entry.type as 'income' | 'expense',
+      paymentMode: entry.payment_mode,
+      date: entry.date,
+      runningBalance: runningBalance,
+      createdAt: entry.created_at,
+      updatedAt: entry.updated_at,
+    }
+  })
+
+  // Return in reverse chronological order (newest first) but with correct running balances
+  return entriesWithBalance.reverse()
 }
 
 export async function getEntry(id: string): Promise<Entry | null> {

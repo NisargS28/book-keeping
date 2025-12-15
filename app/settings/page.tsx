@@ -28,7 +28,7 @@ import {
   createCategory,
   deleteCategory,
 } from "@/lib/store"
-import { Trash2, Plus, AlertCircle } from "lucide-react"
+import { Trash2, Plus } from "lucide-react"
 import { Category } from "@/lib/types"
 
 export default function SettingsPage() {
@@ -46,7 +46,6 @@ export default function SettingsPage() {
   const [editBio, setEditBio] = useState("")
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState("")
-  const [tableWarning, setTableWarning] = useState(false)
 
   // Category dialog
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
@@ -69,13 +68,8 @@ export default function SettingsPage() {
       }
 
       setUser(currentUser)
-      setEditDisplayName(currentUser.displayName)
+      setEditDisplayName(currentUser.displayName || currentUser.email || "")
       setEditProfileImage(currentUser.profileImage || "")
-      
-      // Check if using fallback display name (indicates no profile table)
-      if (currentUser.displayName === currentUser.email?.split('@')[0]) {
-        setTableWarning(true)
-      }
 
       const books = await getBooks(currentUser.id)
       if (books.length === 0) {
@@ -228,21 +222,6 @@ export default function SettingsPage() {
               <p className="text-gray-500">Manage your preferences and categories</p>
             </div>
 
-            {tableWarning && (
-              <div className="border border-destructive bg-destructive/10 text-destructive rounded-lg p-4">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold mb-1">Profile Table Not Found</h3>
-                    <p className="text-sm">
-                      The user_profiles table doesn't exist in your Supabase database. 
-                      Please run the SQL migration from <code className="text-xs bg-black/20 px-1 py-0.5 rounded">PROFILE_SETUP.md</code> to enable profile features.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <Tabs defaultValue="profile" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -260,7 +239,7 @@ export default function SettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-6">
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                        {editDisplayName.charAt(0).toUpperCase()}
+                        {editDisplayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm text-gray-500 mb-2">Display Name</p>

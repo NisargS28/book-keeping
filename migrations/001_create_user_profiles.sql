@@ -24,7 +24,13 @@ CREATE POLICY "Users can update their own profile"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+-- Allow unauthenticated inserts during signup (auth.uid() is NULL during signup)
+-- Then authenticated users can only insert their own profile
 CREATE POLICY "Users can insert their own profile" 
   ON public.user_profiles 
   FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (
+    -- Allow if inserting own profile (after auth) OR allow for new signups
+    (auth.uid() = user_id) OR (auth.uid() IS NULL)
+  );
+
