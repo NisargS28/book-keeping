@@ -1,224 +1,277 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getCategories, createEntry, updateEntry, deleteEntry, type Entry, type Category } from "@/lib/store"
-import { Trash2 } from "lucide-react"
-import { format } from "date-fns"
+import { createEntry, createCategory, getCategories, updateEntry, deleteEntry } from "@/lib/store"
+import { Category, Entry } from "@/lib/types"
+import { Plus } from "lucide-react"
 
 interface EntryDialogProps {
+  bookId: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  bookId: string
-  type: "income" | "expense"
+  categories: Category[] | undefined
+  onEntryCreated: () => void
   entry?: Entry | null
-  onSuccess: () => void
 }
 
-export function EntryDialog({ open, onOpenChange, bookId, type, entry, onSuccess }: EntryDialogProps) {
+export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCreated, entry }: EntryDialogProps) {
+  const isEditing = !!entry
+  const [type, setType] = useState<"income" | "expense">("expense")
   const [description, setDescription] = useState("")
   const [amount, setAmount] = useState("")
   const [categoryId, setCategoryId] = useState("")
-  const [paymentMode, setPaymentMode] = useState("Cash")
-  const [date, setDate] = useState("")
-  const [time, setTime] = useState("")
-  const [notes, setNotes] = useState("")
-  const [categories, setCategories] = useState<Category[]>([])
+  const [paymentMode, setPaymentMode] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [showNewCategory, setShowNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [newCategoryColor, setNewCategoryColor] = useState("#8b5cf6")
+  const [savingCategory, setSavingCategory] = useState(false)
+  const [localCategories, setLocalCategories] = useState<Category[]>(categories ?? [])
+  const [deletingEntry, setDeletingEntry] = useState(false)
 
-  // Load categories when dialog opens
   useEffect(() => {
-    if (open) {
-      const cats = getCategories(bookId).filter((c) => c.type === type)
-      setCategories(cats)
+    setLocalCategories(categories ?? [])
+  }, [categories])
 
-      // Set defaults for new entries
-      if (!entry) {
-        const now = new Date()
-        setDate(format(now, "yyyy-MM-dd"))
-        setTime(format(now, "HH:mm"))
-        setDescription("")
-        setAmount("")
-        setNotes("")
-        setPaymentMode("Cash")
-        setCategoryId(cats[0]?.id || "")
-      } else {
-        // Load existing entry data
-        const entryDate = new Date(entry.date)
-        setDate(format(entryDate, "yyyy-MM-dd"))
-        setTime(format(entryDate, "HH:mm"))
-        setDescription(entry.description)
-        setAmount(entry.amount.toString())
-        setNotes(entry.notes || "")
-        setPaymentMode(entry.paymentMode)
-        setCategoryId(entry.categoryId)
-      }
+  useEffect(() => {
+    if (open && entry) {
+      // Populate form with entry data
+      setType(entry.type)
+      setDescription(entry.description)
+      setAmount(entry.amount.toString())
+      setCategoryId(entry.categoryId)
+      setPaymentMode(entry.paymentMode || "")
+    } else if (open) {
+      // Reset form for new entry
+      setType("expense")
+      setDescription("")
+      setAmount("")
+      setCategoryId("")
+      setPaymentMode("")
     }
-  }, [open, bookId, type, entry])
+  }, [open, entry])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return
 
-    if (!description || !amount || !categoryId) {
-      alert("Please fill in all required fields")
-      return
-    }
-
-    const amountNum = Number.parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) {
-      alert("Please enter a valid amount")
-      return
-    }
-
-    const datetime = new Date(`${date}T${time}`)
-
-    if (entry) {
-      updateEntry(entry.id, {
-        description,
-        amount: amountNum,
-        categoryId,
-        paymentMode,
-        date: datetime.toISOString(),
-        notes,
-      })
-    } else {
-      createEntry({
+    try {
+      setSavingCategory(true)
+      const newCategory = createCategory({
         bookId,
-        type,
-        description,
-        amount: amountNum,
-        categoryId,
-        paymentMode,
-        date: datetime.toISOString(),
-        notes: notes || "",
+        name: newCategoryName,
+        color: newCategoryColor,
       })
+      setCategoryId(newCategory.id)
+      setLocalCategories([...localCategories, newCategory])
+      setNewCategoryName("")
+      setNewCategoryColor("#8b5cf6")
+      setShowNewCategory(false)
+    } catch (error) {
+      console.error("Error creating category:", error)
+    } finally {
+      setSavingCategory(false)
     }
-
-    onSuccess()
-    onOpenChange(false)
   }
 
-  const handleDelete = () => {
-    if (!entry) return
+  const handleSaveEntry = async () => {
+    if (!description.trim() || !amount || !categoryId) {
+      alert("Please fill in all fields")
+      return
+    }
 
-    if (confirm("Are you sure you want to delete this entry?")) {
-      deleteEntry(entry.id)
-      onSuccess()
+    try {
+      setSaving(true)
+      if (isEditing && entry) {
+        updateEntry(entry.id, {
+          description,
+          amount: parseFloat(amount),
+          categoryId,
+          paymentMode: paymentMode || "",
+          type,
+        })
+      } else {
+        await createEntry({
+          bookId,
+          categoryId,
+          description,
+          amount: parseFloat(amount),
+          type,
+          paymentMode: paymentMode || "",
+          date: new Date().toISOString(),
+        })
+      }
+
+      setDescription("")
+      setAmount("")
+      setCategoryId("")
+      setPaymentMode("")
+      setType("expense")
       onOpenChange(false)
+      onEntryCreated()
+    } catch (error) {
+      console.error("Error saving entry:", error)
+      alert("Failed to save entry")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteEntry = async () => {
+    if (!isEditing || !entry) return
+    if (!confirm("Are you sure you want to delete this entry?")) return
+
+    try {
+      setDeletingEntry(true)
+      deleteEntry(entry.id)
+      onOpenChange(false)
+      onEntryCreated()
+    } catch (error) {
+      console.error("Error deleting entry:", error)
+      alert("Failed to delete entry")
+    } finally {
+      setDeletingEntry(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>{entry ? "Edit Entry" : type === "income" ? "Add Cash In" : "Add Cash Out"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Entry" : "Add Entry"}</DialogTitle>
+          <DialogDescription>{isEditing ? "Update the entry details" : "Create a new entry"}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="description">Remarks *</Label>
-            <Input
-              id="description"
-              placeholder="Enter description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount *</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Category *</Label>
-              <Select value={categoryId} onValueChange={setCategoryId} required>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="paymentMode">Payment Mode</Label>
-            <Select value={paymentMode} onValueChange={setPaymentMode}>
-              <SelectTrigger id="paymentMode">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Type</label>
+            <Select value={type} onValueChange={(value: "income" | "expense") => setType(value)}>
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Cash">Cash</SelectItem>
-                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                <SelectItem value="Credit Card">Credit Card</SelectItem>
-                <SelectItem value="Debit Card">Debit Card</SelectItem>
-                <SelectItem value="UPI">UPI</SelectItem>
-                <SelectItem value="Check">Check</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="income">Cash In</SelectItem>
+                <SelectItem value="expense">Cash Out</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="time">Time</Label>
-              <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Additional notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
+          <div>
+            <label className="text-sm font-medium">Description</label>
+            <Input
+              placeholder="e.g., Monthly salary"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
-          <DialogFooter className="gap-2">
-            {entry && (
-              <Button type="button" variant="destructive" onClick={handleDelete} className="mr-auto gap-2">
-                <Trash2 className="h-4 w-4" />
-                Delete
+          <div>
+            <label className="text-sm font-medium">Amount</label>
+            <Input
+              type="number"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              step="0.01"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Category</label>
+            {!showNewCategory ? (
+              <div className="flex gap-2">
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localCategories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowNewCategory(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Input
+                  placeholder="Category name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={newCategoryColor}
+                    onChange={(e) => setNewCategoryColor(e.target.value)}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <div className="flex gap-2 flex-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1 text-xs"
+                      onClick={() => setShowNewCategory(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 text-xs"
+                      onClick={handleCreateCategory}
+                      disabled={savingCategory}
+                    >
+                      {savingCategory ? "Creating..." : "Create"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Payment Mode (Optional)</label>
+            <Input
+              placeholder="e.g., Cash, Card, Bank Transfer"
+              value={paymentMode}
+              onChange={(e) => setPaymentMode(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {isEditing && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteEntry}
+                disabled={deletingEntry}
+              >
+                {deletingEntry ? "Deleting..." : "Delete"}
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+            <Button onClick={handleSaveEntry} disabled={saving || deletingEntry} className="flex-1">
+              {saving ? (isEditing ? "Updating..." : "Creating...") : isEditing ? "Update Entry" : "Create Entry"}
             </Button>
-            <Button type="submit" className={type === "income" ? "bg-green-600 hover:bg-green-700" : ""}>
-              {entry ? "Update" : "Add"} Entry
-            </Button>
-          </DialogFooter>
-        </form>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

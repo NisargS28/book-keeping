@@ -7,6 +7,9 @@ import mockBooks from "@/data/mock-books.json"
 import mockCategories from "@/data/mock-categories.json"
 import mockEntries from "@/data/mock-entries.json"
 
+// Re-export types for convenience
+export type { Book, Category, Entry } from "./types"
+
 const BOOKS_KEY = "cashbook_books"
 const CATEGORIES_KEY = "cashbook_categories"
 const ENTRIES_KEY = "cashbook_entries"

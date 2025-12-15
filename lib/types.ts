@@ -20,7 +20,6 @@ export interface Category {
   id: string
   bookId: string
   name: string
-  type: "income" | "expense"
   color?: string
   createdAt: string
 }

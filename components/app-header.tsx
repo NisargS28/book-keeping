@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getCurrentUser, logout } from "@/lib/auth"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getBook } from "@/lib/store"
 
@@ -20,7 +21,14 @@ interface AppHeaderProps {
 
 export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
   const router = useRouter()
-  const user = getCurrentUser()
+  const [email, setEmail] = useState<string | null>(null)
+  useEffect(() => {
+    const load = async () => {
+      const user = await getCurrentUser()
+      setEmail(user?.email ?? null)
+    }
+    load()
+  }, [])
   const activeBook = activeBookId ? getBook(activeBookId) : null
 
   const handleLogout = () => {
@@ -59,14 +67,14 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2">
               <User className="h-4 w-4" />
-              <span>{user?.name || user?.email}</span>
+              <span>{email ?? ""}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem disabled>
               <User className="mr-2 h-4 w-4" />
-              {user?.email}
+              {email ?? ""}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

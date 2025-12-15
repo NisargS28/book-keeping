@@ -31,13 +31,12 @@ export default function SignupPage() {
       return
     }
 
-    const result = signup(email, password, name)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-    } else {
+    try {
+      await signup(email, password)
       router.push("/dashboard")
+    } catch (err: any) {
+      setError(err?.message || "Failed to sign up")
+      setLoading(false)
     }
   }
 

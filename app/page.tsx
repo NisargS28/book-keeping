@@ -8,12 +8,15 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    const user = getCurrentUser()
-    if (user) {
-      router.push("/books")
-    } else {
-      router.push("/login")
+    const init = async () => {
+      const user = await getCurrentUser()
+      if (user) {
+        router.push("/books")
+      } else {
+        router.push("/login")
+      }
     }
+    init()
   }, [router])
 
   return (

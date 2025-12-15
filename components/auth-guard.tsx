@@ -13,13 +13,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
-    if (!currentUser) {
-      router.push("/login")
-    } else {
-      setUser(currentUser)
+    const init = async () => {
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        router.push("/login")
+      } else {
+        // Casting to any here since auth user shape may differ from app User
+        setUser(currentUser as any)
+      }
+      setLoading(false)
     }
-    setLoading(false)
+    init()
   }, [router])
 
   if (loading) {

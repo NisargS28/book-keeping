@@ -23,14 +23,12 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
-
-    const result = login(email, password)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-    } else {
+    try {
+      await login(email, password)
       router.push("/dashboard")
+    } catch (err: any) {
+      setError(err?.message || "Failed to sign in")
+      setLoading(false)
     }
   }
 

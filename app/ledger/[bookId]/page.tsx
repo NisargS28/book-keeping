@@ -3,13 +3,14 @@
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
+import { AppSidebar } from "@/components/app-sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getBook, getEntries, getCategories, type Entry, type Category } from "@/lib/store"
-import { ArrowLeft, Plus, Minus, FileText, Search, Edit2 } from "lucide-react"
+import { ArrowLeft, Plus, Minus, Search, Edit2 } from "lucide-react"
 import { format } from "date-fns"
 import { EntryDialog } from "@/components/entry-dialog"
 
@@ -132,19 +133,13 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
                 <Minus className="h-4 w-4" />
                 Cash Out
               </Button>
-              <Button
-                variant="outline"
-                className="gap-2 bg-transparent"
-                onClick={() => router.push(`/reports/${bookId}`)}
-              >
-                <FileText className="h-4 w-4" />
-                Reports
-              </Button>
             </div>
           </div>
         </div>
 
-        <main className="flex-1 overflow-auto p-6">
+        <div className="flex flex-1">
+          <AppSidebar />
+          <main className="flex-1 overflow-auto p-6">
           <div className="container mx-auto max-w-7xl space-y-6">
             {/* Summary Bar */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -299,15 +294,16 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
             </Card>
           </div>
         </main>
+        </div>
       </div>
 
       <EntryDialog
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
         bookId={bookId}
-        type={dialogType}
+        categories={categories}
+        onEntryCreated={loadData}
         entry={entryToEdit}
-        onSuccess={loadData}
       />
     </AuthGuard>
   )

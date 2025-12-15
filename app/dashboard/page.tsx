@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUser } from "@/lib/auth"
-import { getBooks, getActiveBookId, setActiveBookId, getTransactions, getCategories, getAccounts } from "@/lib/store"
+import { getBooks, getActiveBookId, setActiveBookId, getEntries, getCategories } from "@/lib/store"
 import { ArrowDownRight, ArrowUpRight, DollarSign, TrendingUp } from "lucide-react"
 import {
   LineChart,
@@ -30,23 +30,26 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const user = getCurrentUser()
-    if (!user) return
+    const init = async () => {
+      const user = await getCurrentUser()
+      if (!user) return
 
-    const books = getBooks(user.id)
-    if (books.length === 0) {
-      router.push("/books")
-      return
+      const books = getBooks(user.id)
+      if (books.length === 0) {
+        router.push("/books")
+        return
+      }
+
+      let bookId = getActiveBookId()
+      if (!bookId || !books.find((b) => b.id === bookId)) {
+        bookId = books[0].id
+        setActiveBookId(bookId)
+      }
+
+      setActiveBookIdState(bookId)
+      setLoading(false)
     }
-
-    let bookId = getActiveBookId()
-    if (!bookId || !books.find((b) => b.id === bookId)) {
-      bookId = books[0].id
-      setActiveBookId(bookId)
-    }
-
-    setActiveBookIdState(bookId)
-    setLoading(false)
+    init()
   }, [router])
 
   if (loading || !activeBookId) {
@@ -59,27 +62,25 @@ export default function DashboardPage() {
     )
   }
 
-  const transactions = getTransactions(activeBookId)
+  const entries = getEntries(activeBookId)
   const categories = getCategories(activeBookId)
-  const accounts = getAccounts(activeBookId)
 
-  const totalIncome = transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+  const totalIncome = entries.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
 
-  const totalExpense = transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
+  const totalExpense = entries.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
 
   const balance = totalIncome - totalExpense
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0)
 
   // Chart data for last 7 days
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = subDays(new Date(), 6 - i)
     const dateStr = format(date, "yyyy-MM-dd")
 
-    const dayTransactions = transactions.filter((t) => format(new Date(t.date), "yyyy-MM-dd") === dateStr)
+    const dayEntries = entries.filter((t) => format(new Date(t.date), "yyyy-MM-dd") === dateStr)
 
-    const income = dayTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+    const income = dayEntries.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
 
-    const expense = dayTransactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
+    const expense = dayEntries.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
 
     return {
       date: format(date, "MMM dd"),
@@ -88,21 +89,22 @@ export default function DashboardPage() {
     }
   })
 
-  // Category breakdown for expenses
+  // Category breakdown - show categories with expenses
   const expensesByCategory = categories
-    .filter((c) => c.type === "expense")
     .map((category) => {
-      const total = transactions.filter((t) => t.categoryId === category.id).reduce((sum, t) => sum + t.amount, 0)
+      const expenseTotal = entries
+        .filter((t) => t.categoryId === category.id && t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0)
 
       return {
         name: category.name,
-        value: total,
+        value: expenseTotal,
         color: category.color || "#8b5cf6",
       }
     })
     .filter((c) => c.value > 0)
 
-  const recentTransactions = transactions.slice(0, 5)
+  const recentEntries = entries.slice(0, 5)
 
   return (
     <AuthGuard>
@@ -125,8 +127,8 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
-                    <p className="text-xs text-muted-foreground">Across all accounts</p>
+                    <div className="text-2xl font-bold">${balance.toFixed(2)}</div>
+                    <p className="text-xs text-muted-foreground">Current book balance</p>
                   </CardContent>
                 </Card>
 
@@ -138,7 +140,7 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="text-2xl font-bold text-success">${totalIncome.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
-                      {transactions.filter((t) => t.type === "income").length} transactions
+                      {entries.filter((t) => t.type === "income").length} transactions
                     </p>
                   </CardContent>
                 </Card>
@@ -151,7 +153,7 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="text-2xl font-bold text-destructive">${totalExpense.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
-                      {transactions.filter((t) => t.type === "expense").length} transactions
+                      {entries.filter((t) => t.type === "expense").length} transactions
                     </p>
                   </CardContent>
                 </Card>
@@ -243,7 +245,7 @@ export default function DashboardPage() {
                       </ResponsiveContainer>
                     ) : (
                       <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                        No expense data availabl
+                        No expense data available
                       </div>
                     )}
                   </CardContent>
@@ -256,28 +258,27 @@ export default function DashboardPage() {
                   <CardTitle>Recent Transactions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {recentTransactions.length > 0 ? (
+                  {recentEntries.length > 0 ? (
                     <div className="space-y-4">
-                      {recentTransactions.map((transaction) => {
-                        const category = categories.find((c) => c.id === transaction.categoryId)
-                        const account = accounts.find((a) => a.id === transaction.accountId)
+                      {recentEntries.map((entry) => {
+                        const category = categories.find((c) => c.id === entry.categoryId)
 
                         return (
                           <div
-                            key={transaction.id}
+                            key={entry.id}
                             className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
                           >
                             <div className="space-y-1">
-                              <div className="font-medium">{transaction.description}</div>
+                              <div className="font-medium">{entry.description}</div>
                               <div className="text-sm text-muted-foreground">
-                                {category?.name} • {account?.name} •{" "}
-                                {format(new Date(transaction.date), "MMM dd, yyyy")}
+                                {category?.name} • {entry.paymentMode} •{" "}
+                                {format(new Date(entry.date), "MMM dd, yyyy")}
                               </div>
                             </div>
                             <div
-                              className={`text-lg font-semibold ${transaction.type === "income" ? "text-success" : "text-destructive"}`}
+                              className={`text-lg font-semibold ${entry.type === "income" ? "text-success" : "text-destructive"}`}
                             >
-                              {transaction.type === "income" ? "+" : "-"}${transaction.amount.toFixed(2)}
+                              {entry.type === "income" ? "+" : "-"}${entry.amount.toFixed(2)}
                             </div>
                           </div>
                         )

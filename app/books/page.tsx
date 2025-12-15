@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
+import { AppSidebar } from "@/components/app-sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -45,8 +46,8 @@ export default function BooksPage() {
   const [editBookDescription, setEditBookDescription] = useState("")
   const [loading, setLoading] = useState(true)
 
-  const loadBooks = () => {
-    const user = getCurrentUser()
+  const loadBooks = async () => {
+    const user = await getCurrentUser()
     if (!user) return
 
     const userBooks = getBooks(user.id)
@@ -58,8 +59,8 @@ export default function BooksPage() {
     loadBooks()
   }, [])
 
-  const handleCreateBook = () => {
-    const user = getCurrentUser()
+  const handleCreateBook = async () => {
+    const user = await getCurrentUser()
     if (!user || !newBookName.trim()) return
 
     createBook({
@@ -123,7 +124,9 @@ export default function BooksPage() {
     <AuthGuard>
       <div className="flex min-h-screen flex-col">
         <AppHeader activeBookId={null} />
-        <main className="flex-1 overflow-auto bg-background p-6">
+        <div className="flex flex-1">
+          <AppSidebar />
+          <main className="flex-1 overflow-auto bg-background p-6">
           <div className="mx-auto max-w-6xl space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -253,6 +256,7 @@ export default function BooksPage() {
             )}
           </div>
         </main>
+        </div>
       </div>
 
       {/* Edit Book Dialog */}
