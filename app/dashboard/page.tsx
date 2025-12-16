@@ -133,7 +133,8 @@ export default function DashboardPage() {
               </div>
 
               {/* Stats Cards */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">\n                <Card>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
                     <IndianRupee className="h-4 w-4 text-muted-foreground" />
@@ -142,7 +143,7 @@ export default function DashboardPage() {
                     <div className="text-2xl font-bold">₹{balance.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">Current book balance</p>
                   </CardContent>
-                </Card>
+                </Card> */}
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
