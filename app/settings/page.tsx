@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppSidebar } from "@/components/app-sidebar"
 import { MobileNav } from "@/components/mobile-nav"
 import { AppHeader } from "@/components/app-header"
-import { getCurrentUser, logout, updateUserProfile } from "@/lib/auth"
+import { getCurrentUser, logout, updateUserProfile, linkWhatsAppPhone } from "@/lib/auth"
 import {
   getBooks,
   getActiveBookId,
@@ -60,6 +60,13 @@ export default function SettingsPage() {
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false)
   const [deletingCategory, setDeletingCategory] = useState(false)
 
+  // WhatsApp linking state
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false)
+  const [whatsappPhone, setWhatsappPhone] = useState("")
+  const [currentWhatsappPhone, setCurrentWhatsappPhone] = useState<string | null>(null)
+  const [savingWhatsApp, setSavingWhatsApp] = useState(false)
+  const [whatsappError, setWhatsappError] = useState("")
+
   const loadData = async () => {
     try {
       const currentUser = await getCurrentUser()
@@ -71,6 +78,20 @@ export default function SettingsPage() {
       setUser(currentUser)
       setEditDisplayName(currentUser.displayName || currentUser.email || "")
       setEditProfileImage(currentUser.profileImage || "")
+      
+      // Load WhatsApp phone if available
+      const { supabase } = await import('@/lib/supabase')
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('whatsapp_phone')
+        .eq('id', currentUser.id)
+        .single()
+      
+      if (profile?.whatsapp_phone) {
+        // Remove whatsapp: prefix if it exists (from old format)
+        const cleanPhone = profile.whatsapp_phone.replace('whatsapp:', '')
+        setCurrentWhatsappPhone(cleanPhone)
+      }
 
       const books = await getBooks(currentUser.id)
       if (books.length === 0) {
@@ -143,6 +164,68 @@ export default function SettingsPage() {
       setProfileError(error?.message || "Failed to update profile. Please make sure the user_profiles table exists in Supabase.")
     } finally {
       setSavingProfile(false)
+    }
+  }
+
+  const handleLinkWhatsApp = async () => {
+    if (!user || !whatsappPhone.trim()) {
+      setWhatsappError("Please enter a valid WhatsApp number")
+      return
+    }
+
+    try {
+      setSavingWhatsApp(true)
+      setWhatsappError("")
+      
+      // Format phone number: just ensure it has + prefix
+      let formattedPhone = whatsappPhone.trim()
+      
+      // Remove whatsapp: prefix if user accidentally added it
+      if (formattedPhone.startsWith('whatsapp:')) {
+        formattedPhone = formattedPhone.replace('whatsapp:', '')
+      }
+      
+      // Add + if missing
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+' + formattedPhone
+      }
+
+      const result = await linkWhatsAppPhone(user.id, formattedPhone)
+      
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+      
+      setCurrentWhatsappPhone(formattedPhone)
+      setWhatsappDialogOpen(false)
+      setWhatsappPhone("")
+    } catch (error: any) {
+      console.error("Error linking WhatsApp:", error)
+      setWhatsappError(error?.message || "Failed to link WhatsApp number. Please try again.")
+    } finally {
+      setSavingWhatsApp(false)
+    }
+  }
+
+  const handleUnlinkWhatsApp = async () => {
+    if (!user) return
+
+    try {
+      setSavingWhatsApp(true)
+      setWhatsappError("")
+      
+      const result = await linkWhatsAppPhone(user.id, '')
+      
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+      
+      setCurrentWhatsappPhone(null)
+    } catch (error: any) {
+      console.error("Error unlinking WhatsApp:", error)
+      setWhatsappError(error?.message || "Failed to unlink WhatsApp number. Please try again.")
+    } finally {
+      setSavingWhatsApp(false)
     }
   }
 
@@ -286,6 +369,81 @@ export default function SettingsPage() {
                         </div>
                       </DialogContent>
                     </Dialog>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>WhatsApp Integration</CardTitle>
+                    <CardDescription>Add entries via WhatsApp messages</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {currentWhatsappPhone ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-green-900 dark:text-green-100">Connected</p>
+                            <p className="text-xs text-green-700 dark:text-green-300">{currentWhatsappPhone}</p>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleUnlinkWhatsApp}
+                            disabled={savingWhatsApp}
+                          >
+                            {savingWhatsApp ? "Unlinking..." : "Unlink"}
+                          </Button>
+                        </div>
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
+                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">📱 How to use:</p>
+                          <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
+                            <li>Send a WhatsApp message to <strong>+14155238886</strong></li>
+                            <li>Use format: <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">BookName, income/expense, amount, category, payment mode, description</code></li>
+                            <li>Example: <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">Personal, income, 5000, Salary, Bank, Monthly salary</code></li>
+                          </ol>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Link your WhatsApp number to add entries by sending messages.
+                        </p>
+                        <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+                          <Button onClick={() => setWhatsappDialogOpen(true)} className="w-full">
+                            Link WhatsApp Number
+                          </Button>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Link WhatsApp Number</DialogTitle>
+                              <DialogDescription>
+                                Enter your WhatsApp phone number to enable adding entries via WhatsApp
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium">WhatsApp Phone Number</label>
+                                <Input
+                                  placeholder="+1234567890"
+                                  value={whatsappPhone}
+                                  onChange={(e) => setWhatsappPhone(e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Include country code (e.g., +1 for US, +91 for India)
+                                </p>
+                              </div>
+                              {whatsappError && (
+                                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
+                                  {whatsappError}
+                                </div>
+                              )}
+                              <Button onClick={handleLinkWhatsApp} disabled={savingWhatsApp} className="w-full">
+                                {savingWhatsApp ? "Linking..." : "Link Number"}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

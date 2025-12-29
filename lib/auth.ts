@@ -194,5 +194,50 @@ export async function getUserProfile(userId: string) {
   return data
 }
 
+/**
+ * Get user by WhatsApp phone number
+ */
+export async function getUserByPhone(whatsappPhone: string) {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('whatsapp_phone', whatsappPhone)
+    .single()
+
+  if (error) {
+    console.error('Error fetching user by phone:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * Link WhatsApp phone number to user profile
+ */
+export async function linkWhatsAppPhone(
+  userId: string,
+  whatsappPhone: string
+): Promise<{ error?: any }> {
+  try {
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({
+        whatsapp_phone: whatsappPhone,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+
+    if (error) {
+      throw error
+    }
+
+    return {}
+  } catch (error: any) {
+    console.error('Error linking WhatsApp phone:', error)
+    return { error }
+  }
+}
+
 // Backwards-compatible alias for existing imports
 export { signUp as signup }
