@@ -54,6 +54,13 @@ export default function SignupPage() {
           <CardDescription>Get started with CashBook today</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+            <p className="font-medium mb-1">📧 Email Verification Required</p>
+            <p className="text-xs">
+              After signing up, you&apos;ll receive a verification link via email. Please click the link to verify your
+              account, then return to the login page to sign in. The verification link expires after one use.
+            </p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
