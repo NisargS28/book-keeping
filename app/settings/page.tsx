@@ -397,7 +397,7 @@ export default function SettingsPage() {
                         <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
                           <p className="text-sm font-medium text-blue-900 dark:text-blue-100">📱 How to use:</p>
                           <ol className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-                            <li>Send a WhatsApp message to <strong>+14155238886</strong></li>
+                            <li>Send a WhatsApp message "join refer-sick" to <strong>+14155238886</strong> for sandbox access.</li>
                             <li>Use format: <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">BookName, income/expense, amount, category, payment mode, description</code></li>
                             <li>Example: <code className="bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">Personal, income, 5000, Salary, Bank, Monthly salary</code></li>
                           </ol>
