@@ -34,7 +34,7 @@ export default function SignupPage() {
 
     try {
       await signup(email, password, name)
-      router.push("/dashboard")
+      router.push("/books")
     } catch (err: any) {
       setError(err?.message || "Failed to sign up")
       setLoading(false)

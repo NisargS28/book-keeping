@@ -235,6 +235,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the entry
+    const now = new Date()
     const { data: entry, error: entryError } = await supabaseAdmin
       .from('entries')
       .insert([{
@@ -244,7 +245,8 @@ export async function POST(request: NextRequest) {
         amount: amount,
         type: type,
         payment_mode: paymentMode || null, // Use null if no payment mode provided
-        date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+        date: now.toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+        occurred_at: now.toISOString(), // Exact timestamp when WhatsApp message was processed
       }])
       .select()
       .single()

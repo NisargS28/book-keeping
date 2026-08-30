@@ -38,11 +38,13 @@ export interface Entry {
   id: string
   bookId: string
   categoryId: string
+  people?: string | null
   type: "income" | "expense"
   amount: number
   description: string
   paymentMode: string | null
   date: string
+  occurredAt: string
   notes?: string
   runningBalance: number
   createdAt: string

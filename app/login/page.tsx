@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(email, password)
-      router.push("/dashboard")
+      router.push("/books")
     } catch (err: any) {
       setError(err?.message || "Failed to sign in")
       setLoading(false)

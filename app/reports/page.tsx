@@ -1,11 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
-import { AppSidebar } from "@/components/app-sidebar"
-import { MobileNav } from "@/components/mobile-nav"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,13 +11,16 @@ import { Label } from "@/components/ui/label"
 import { getCurrentUser } from "@/lib/auth"
 import { getBooks, getEntries, getCategories } from "@/lib/store"
 import { Book, Entry, Category } from "@/lib/types"
-import { Download, FileText } from "lucide-react"
+import { Download, FileText, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
 
 type ReportType = "all" | "day-wise" | "category-wise"
 
-export default function ReportsPage() {
+function ReportsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const bookIdParam = searchParams.get("bookId")
+
   const [loading, setLoading] = useState(true)
   const [books, setBooks] = useState<Book[]>([])
   const [selectedBookId, setSelectedBookId] = useState<string>("")
@@ -43,11 +44,18 @@ export default function ReportsPage() {
       }
 
       setBooks(userBooks)
-      setSelectedBookId(userBooks[0].id)
+      
+      // If bookIdParam is valid in user's books, select it, otherwise select the first book
+      if (bookIdParam && userBooks.some((b) => b.id === bookIdParam)) {
+        setSelectedBookId(bookIdParam)
+      } else {
+        setSelectedBookId(userBooks[0].id)
+      }
+      
       setLoading(false)
     }
     init()
-  }, [router])
+  }, [router, bookIdParam])
 
   useEffect(() => {
     const loadData = async () => {
@@ -194,9 +202,10 @@ export default function ReportsPage() {
         `
         entries.forEach((entry) => {
           const category = categories.find((c) => c.id === entry.categoryId)
+          const entryDate = new Date(entry.occurredAt || entry.date)
           content += `
               <tr>
-                <td>${format(new Date(entry.date), "MMM dd, yyyy HH:mm")}</td>
+                <td>${format(entryDate, "MMM dd, yyyy HH:mm")}</td>
                 <td>${entry.description}</td>
                 <td>${category?.name || "N/A"}</td>
                 <td>${entry.paymentMode || "N/A"}</td>
@@ -212,9 +221,10 @@ export default function ReportsPage() {
         `
       } else if (reportType === "day-wise") {
         const entriesByDate = entries.reduce((acc, entry) => {
-          const date = format(new Date(entry.date), "yyyy-MM-dd")
-          if (!acc[date]) acc[date] = []
-          acc[date].push(entry)
+          const entryDate = new Date(entry.occurredAt || entry.date)
+          const dateKey = format(entryDate, "yyyy-MM-dd")
+          if (!acc[dateKey]) acc[dateKey] = []
+          acc[dateKey].push(entry)
           return acc
         }, {} as Record<string, Entry[]>)
 
@@ -236,15 +246,18 @@ export default function ReportsPage() {
         Object.keys(entriesByDate)
           .sort()
           .reverse()
-          .forEach((date) => {
-            const dayEntries = entriesByDate[date]
+          .forEach((dateKey) => {
+            const dayEntries = entriesByDate[dateKey]
             const dayIncome = dayEntries.filter((e) => e.type === "income").reduce((sum, e) => sum + e.amount, 0)
             const dayExpense = dayEntries.filter((e) => e.type === "expense").reduce((sum, e) => sum + e.amount, 0)
+
+            const [y, m, d] = dateKey.split("-").map(Number)
+            const dateObj = new Date(y, m - 1, d)
 
             content += `
               <tr class="group-header">
                 <td colspan="5">
-                  ${format(new Date(date), "MMMM dd, yyyy")} - 
+                  ${format(dateObj, "MMMM dd, yyyy")} - 
                   Income: ₹${dayIncome.toFixed(2)} | 
                   Expense: ₹${dayExpense.toFixed(2)} | 
                   Net: ₹${(dayIncome - dayExpense).toFixed(2)}
@@ -254,9 +267,10 @@ export default function ReportsPage() {
 
             dayEntries.forEach((entry) => {
               const category = categories.find((c) => c.id === entry.categoryId)
+              const entryDate = new Date(entry.occurredAt || entry.date)
               content += `
                 <tr>
-                  <td>${format(new Date(entry.date), "HH:mm")}</td>
+                  <td>${format(entryDate, "HH:mm")}</td>
                   <td>${entry.description}</td>
                   <td>${category?.name || "N/A"}</td>
                   <td class="${entry.type}">${entry.type === "income" ? "Income" : "Expense"}</td>
@@ -314,9 +328,10 @@ export default function ReportsPage() {
           `
 
           catEntries.forEach((entry) => {
+            const entryDate = new Date(entry.occurredAt || entry.date)
             content += `
               <tr>
-                <td>${format(new Date(entry.date), "MMM dd, yyyy HH:mm")}</td>
+                <td>${format(entryDate, "MMM dd, yyyy HH:mm")}</td>
                 <td>${entry.description}</td>
                 <td>${entry.paymentMode || "N/A"}</td>
                 <td class="${entry.type}">${entry.type === "income" ? "Income" : "Expense"}</td>
@@ -353,138 +368,133 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <AuthGuard>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
-      </AuthGuard>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
     )
   }
 
   const selectedBook = books.find((b) => b.id === selectedBookId)
 
   return (
-    <AuthGuard>
-      <div className="flex min-h-screen flex-col">
-        <AppHeader activeBookId={selectedBookId} />
-        <div className="flex flex-1">
-          <AppSidebar />
-          <main className="flex-1 overflow-auto bg-background p-4 md:p-6 pb-20 md:pb-6">
-            <div className="mx-auto max-w-4xl space-y-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h1>
-                <p className="text-sm md:text-base text-muted-foreground">
-                  Export detailed reports of your financial data
-                </p>
+    <div className="flex min-h-screen flex-col bg-background">
+      <AppHeader activeBookId={selectedBookId} />
+      <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
+        <div className="mx-auto max-w-4xl space-y-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (selectedBookId) {
+                  router.push(`/ledger/${selectedBookId}`)
+                } else {
+                  router.push("/books")
+                }
+              }}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h1>
+              <p className="text-sm text-muted-foreground">
+                Export detailed reports for your books
+              </p>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                Generate Report
+              </CardTitle>
+              <CardDescription>Select a book and report format to preview and download</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="book">Select Book</Label>
+                <Select value={selectedBookId} onValueChange={setSelectedBookId}>
+                  <SelectTrigger id="book">
+                    <SelectValue placeholder="Select a book" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {books.map((book) => (
+                      <SelectItem key={book.id} value={book.id}>
+                        {book.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Generate Report
-                  </CardTitle>
-                  <CardDescription>Select a book and report type to export as PDF</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="book">Select Book</Label>
-                    <Select value={selectedBookId} onValueChange={setSelectedBookId}>
-                      <SelectTrigger id="book">
-                        <SelectValue placeholder="Select a book" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {books.map((book) => (
-                          <SelectItem key={book.id} value={book.id}>
-                            {book.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="reportType">Report Type</Label>
+                <Select value={reportType} onValueChange={(value) => setReportType(value as ReportType)}>
+                  <SelectTrigger id="reportType">
+                    <SelectValue placeholder="Select report type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Entries</SelectItem>
+                    <SelectItem value="day-wise">Day-wise Summary</SelectItem>
+                    <SelectItem value="category-wise">Category-wise Summary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="reportType">Report Type</Label>
-                    <Select value={reportType} onValueChange={(value) => setReportType(value as ReportType)}>
-                      <SelectTrigger id="reportType">
-                        <SelectValue placeholder="Select report type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Entries</SelectItem>
-                        <SelectItem value="day-wise">Day-wise Summary</SelectItem>
-                        <SelectItem value="category-wise">Category-wise Summary</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {selectedBook && (
-                    <div className="rounded-lg bg-muted p-4 space-y-2">
-                      <h3 className="font-medium">Preview Information</h3>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Book:</span>
-                          <p className="font-medium">{selectedBook.name}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Total Entries:</span>
-                          <p className="font-medium">{entries.length}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Report Type:</span>
-                          <p className="font-medium">
-                            {reportType === "all"
-                              ? "All Entries"
-                              : reportType === "day-wise"
-                                ? "Day-wise Summary"
-                                : "Category-wise Summary"}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Categories:</span>
-                          <p className="font-medium">{categories.length}</p>
-                        </div>
-                      </div>
+              {selectedBook && (
+                <div className="rounded-xl border border-border/80 bg-muted/50 p-4 space-y-2">
+                  <h3 className="font-semibold text-sm">Preview Information</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Book</span>
+                      <p className="font-semibold text-foreground">{selectedBook.name}</p>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Total Entries</span>
+                      <p className="font-semibold text-foreground">{entries.length}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Report Type</span>
+                      <p className="font-semibold text-foreground">
+                        {reportType === "all"
+                          ? "All Entries"
+                          : reportType === "day-wise"
+                            ? "Day-wise"
+                            : "Category-wise"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Categories</span>
+                      <p className="font-semibold text-foreground">{categories.length}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                  <Button onClick={generatePDF} disabled={!selectedBookId || generating} className="w-full" size="lg">
-                    <Download className="mr-2 h-4 w-4" />
-                    {generating ? "Generating..." : "Generate PDF Report"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Report Types Explained</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-medium mb-1">All Entries</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Complete list of all transactions with date, description, category, payment mode, and running
-                      balance.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-1">Day-wise Summary</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Transactions grouped by date with daily income, expense, and net totals for each day.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-1">Category-wise Summary</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Transactions organized by category showing income and expense breakdown for each category.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </main>
+              <Button
+                onClick={generatePDF}
+                disabled={!selectedBookId || generating}
+                className="w-full h-11 gap-2 font-semibold"
+                size="lg"
+              >
+                <Download className="h-4 w-4" />
+                {generating ? "Generating..." : "Download / Print Report"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-        <MobileNav />
-      </div>
+      </main>
+    </div>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <AuthGuard>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading reports...</div>}>
+        <ReportsContent />
+      </Suspense>
     </AuthGuard>
   )
 }

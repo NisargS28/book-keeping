@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createEntry, createCategory, getCategories, updateEntry, deleteEntry } from "@/lib/store"
+import { createEntry, createCategory, updateEntry, deleteEntry } from "@/lib/store"
 import { Category, Entry } from "@/lib/types"
 import { Plus } from "lucide-react"
 
@@ -23,6 +23,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   const isEditing = !!entry
   const [type, setType] = useState<"income" | "expense">("expense")
   const [description, setDescription] = useState("")
+  const [people, setPeople] = useState("")
   const [amount, setAmount] = useState("")
   const [categoryId, setCategoryId] = useState("")
   const [paymentMode, setPaymentMode] = useState("")
@@ -45,25 +46,39 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       // Populate form with entry data
       setType(entry.type)
       setDescription(entry.description)
+      setPeople(entry.people || "")
       setAmount(entry.amount.toString())
       setCategoryId(entry.categoryId)
       setPaymentMode(entry.paymentMode || "")
       
-      // Parse date and time from entry.date
-      const entryDate = new Date(entry.date)
-      setDate(entryDate.toISOString().split('T')[0])
-      setTime(entryDate.toTimeString().slice(0, 5))
+      // Parse local date and time from entry.occurredAt or entry.date
+      const entryDate = new Date(entry.occurredAt || entry.date)
+      const year = entryDate.getFullYear()
+      const month = String(entryDate.getMonth() + 1).padStart(2, "0")
+      const day = String(entryDate.getDate()).padStart(2, "0")
+      const hours = String(entryDate.getHours()).padStart(2, "0")
+      const minutes = String(entryDate.getMinutes()).padStart(2, "0")
+
+      setDate(`${year}-${month}-${day}`)
+      setTime(`${hours}:${minutes}`)
     } else if (open) {
-      // Reset form for new entry with current date/time
+      // Reset form for new entry with current local date/time
       setType(initialType)
       setDescription("")
+      setPeople("")
       setAmount("")
       setCategoryId("")
-      setPaymentMode("")
+      setPaymentMode("cash")
       
       const now = new Date()
-      setDate(now.toISOString().split('T')[0])
-      setTime(now.toTimeString().slice(0, 5))
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, "0")
+      const day = String(now.getDate()).padStart(2, "0")
+      const hours = String(now.getHours()).padStart(2, "0")
+      const minutes = String(now.getMinutes()).padStart(2, "0")
+
+      setDate(`${year}-${month}-${day}`)
+      setTime(`${hours}:${minutes}`)
     }
   }, [open, entry, initialType])
 
@@ -90,24 +105,25 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   }
 
   const handleSaveEntry = async () => {
-    console.log('🔍 Checking form values:', {
-      description: description,
-      amount: amount,
-      categoryId: categoryId,
-      date: date,
-      time: time,
-      paymentMode: paymentMode,
-      type: type,
-      bookId: bookId
+    console.log("🔍 Checking form values:", {
+      description,
+      people,
+      amount,
+      categoryId,
+      date,
+      time,
+      paymentMode,
+      type,
+      bookId,
     })
 
     if (!description.trim() || !amount || !categoryId || !date || !time) {
-      console.error('❌ Validation failed:', {
+      console.error("❌ Validation failed:", {
         hasDescription: !!description.trim(),
         hasAmount: !!amount,
         hasCategoryId: !!categoryId,
         hasDate: !!date,
-        hasTime: !!time
+        hasTime: !!time,
       })
       alert("Please fill in all fields")
       return
@@ -116,43 +132,51 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
     try {
       setSaving(true)
       
-      // Combine date and time into ISO string for the date field (just the date part)
-      // The time is stored separately in the timestamp fields
-      const dateString = date // Keep just the date in YYYY-MM-DD format
+      // Combine local date and time into an ISO timestamp for occurred_at
+      const [y, m, d] = date.split("-").map(Number)
+      const [h, min] = time.split(":").map(Number)
+      const entryDateTime = new Date(y, m - 1, d, h, min, 0)
+      const occurredAtIso = entryDateTime.toISOString()
       
-      console.log('💾 Saving entry with:', {
+      console.log("💾 Saving entry with:", {
         bookId,
         categoryId,
         description,
         amount: parseFloat(amount),
         type,
         paymentMode: paymentMode || "",
-        date: dateString
+        date,
+        occurredAt: occurredAtIso,
       })
       
       if (isEditing && entry) {
         await updateEntry(entry.id, {
           description,
+          people: people.trim() || null,
           amount: parseFloat(amount),
           categoryId,
           paymentMode: paymentMode || null,
           type,
-          date: dateString,
+          date,
+          occurredAt: occurredAtIso,
         })
       } else {
         await createEntry({
           bookId,
           categoryId,
           description,
+          people: people.trim() || null,
           amount: parseFloat(amount),
           type,
           paymentMode: paymentMode || null,
-          date: dateString,
+          date,
+          occurredAt: occurredAtIso,
         })
       }
 
-      console.log('✅ Entry saved successfully')
+      console.log("✅ Entry saved successfully")
       setDescription("")
+      setPeople("")
       setAmount("")
       setCategoryId("")
       setPaymentMode("")
@@ -165,9 +189,9 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
         errorMessage: error?.message,
         errorString: String(error),
         errorJSON: JSON.stringify(error),
-        stack: error?.stack
+        stack: error?.stack,
       })
-      alert(`Failed to save entry: ${error?.message || 'Unknown error'}`)
+      alert(`Failed to save entry: ${error?.message || "Unknown error"}`)
     } finally {
       setSaving(false)
     }
@@ -201,8 +225,21 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
         <div className="space-y-5">
           <div className="rounded-xl bg-muted/70 p-1">
             <div className="grid grid-cols-2 gap-1">
-              <Button type="button" variant={type === "income" ? "default" : "ghost"} className={type === "income" ? "bg-success hover:bg-success/90" : ""} onClick={() => setType("income")}>Cash in</Button>
-              <Button type="button" variant={type === "expense" ? "destructive" : "ghost"} onClick={() => setType("expense")}>Cash out</Button>
+              <Button
+                type="button"
+                variant={type === "income" ? "default" : "ghost"}
+                className={type === "income" ? "bg-success hover:bg-success/90" : ""}
+                onClick={() => setType("income")}
+              >
+                Cash in
+              </Button>
+              <Button
+                type="button"
+                variant={type === "expense" ? "destructive" : "ghost"}
+                onClick={() => setType("expense")}
+              >
+                Cash out
+              </Button>
             </div>
           </div>
 
@@ -212,6 +249,15 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
               placeholder="e.g., Monthly salary"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">People <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <Input
+              placeholder="e.g., Rahul, Client name"
+              value={people}
+              onChange={(e) => setPeople(e.target.value)}
             />
           </div>
 
@@ -307,7 +353,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold">Payment mode <span className="font-normal text-muted-foreground">(optional)</span></label>
+            <label className="text-sm font-semibold">Payment mode</label>
             <Select value={paymentMode} onValueChange={setPaymentMode}>
               <SelectTrigger>
                 <SelectValue placeholder="Select payment mode" />
@@ -343,7 +389,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             {isEditing && (
               <Button
                 type="button"

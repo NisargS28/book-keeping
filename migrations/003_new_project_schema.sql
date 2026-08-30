@@ -35,17 +35,20 @@ create table public.entries (
   id uuid primary key default gen_random_uuid(),
   book_id uuid not null references public.books(id) on delete cascade,
   category_id uuid references public.categories(id) on delete set null,
+  people text,
   description text not null check (char_length(trim(description)) > 0),
   amount numeric not null check (amount > 0),
   type text not null check (type in ('income', 'expense')),
   payment_mode text,
   date date not null,
+  occurred_at timestamptz not null default timezone('utc', now()),
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
 
 create index idx_books_user_id on public.books(user_id);
 create index idx_categories_book_id on public.categories(book_id);
+create index idx_entries_book_occurred_at on public.entries(book_id, occurred_at desc, created_at desc);
 create index idx_entries_book_date on public.entries(book_id, date desc, created_at desc);
 create index idx_user_profiles_whatsapp_phone on public.user_profiles(whatsapp_phone)
   where whatsapp_phone is not null;

@@ -8,6 +8,12 @@ export type { Book, Category, Entry } from "./types"
 
 const ACTIVE_BOOK_KEY = "cashbook_active_book"
 
+function notifyDataChange() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("cashbook:data-changed"))
+  }
+}
+
 // ===== BOOKS =====
 
 export async function getBooks(userId: string): Promise<Book[]> {
@@ -99,6 +105,8 @@ export async function createBook(userId: string, name: string, currency: string 
     throw error
   }
 
+  notifyDataChange()
+
   return {
     id: data.id,
     userId: data.user_id,
@@ -133,6 +141,8 @@ export async function updateBook(id: string, updates: Partial<Book>): Promise<Bo
     return null
   }
 
+  notifyDataChange()
+
   if (!data) return null
 
   return {
@@ -158,6 +168,8 @@ export async function deleteBook(id: string): Promise<void> {
     console.error('Error deleting book:', error)
     throw error
   }
+
+  notifyDataChange()
 }
 
 // ===== ACTIVE BOOK =====
@@ -213,6 +225,8 @@ export async function createCategory(category: { bookId: string; name: string; c
     throw error
   }
 
+  notifyDataChange()
+
   return {
     id: data.id,
     bookId: data.book_id,
@@ -233,6 +247,8 @@ export async function deleteCategory(id: string): Promise<void> {
     console.error('Error deleting category:', error)
     throw error
   }
+
+  notifyDataChange()
 }
 
 // ===== ENTRIES =====
@@ -242,6 +258,7 @@ export async function getEntries(bookId: string): Promise<Entry[]> {
     .from('entries')
     .select('*')
     .eq('book_id', bookId)
+    .order('occurred_at', { ascending: true, nullsFirst: false })
     .order('date', { ascending: true })
     .order('created_at', { ascending: true })
 
@@ -251,9 +268,16 @@ export async function getEntries(bookId: string): Promise<Entry[]> {
     throw error
   }
 
+  // Sort chronologically by occurred_at (or fallback to date/created_at) to guarantee accurate running balance
+  const sortedData = (data || []).slice().sort((a, b) => {
+    const timeA = new Date(a.occurred_at || a.created_at || a.date).getTime()
+    const timeB = new Date(b.occurred_at || b.created_at || b.date).getTime()
+    return timeA - timeB
+  })
+
   // Calculate running balance (chronologically)
   let runningBalance = 0
-  const entriesWithBalance = (data || []).map(entry => {
+  const entriesWithBalance = sortedData.map(entry => {
     const amount = entry.type === 'income' ? entry.amount : -entry.amount
     runningBalance += amount
 
@@ -261,11 +285,13 @@ export async function getEntries(bookId: string): Promise<Entry[]> {
       id: entry.id,
       bookId: entry.book_id,
       categoryId: entry.category_id,
+      people: entry.people,
       description: entry.description,
       amount: entry.amount,
       type: entry.type as 'income' | 'expense',
       paymentMode: entry.payment_mode,
       date: entry.date,
+      occurredAt: entry.occurred_at || entry.created_at || (entry.date ? `${entry.date}T00:00:00.000Z` : new Date().toISOString()),
       runningBalance: runningBalance,
       createdAt: entry.created_at,
       updatedAt: entry.updated_at,
@@ -295,26 +321,33 @@ export async function getEntry(id: string): Promise<Entry | null> {
     id: data.id,
     bookId: data.book_id,
     categoryId: data.category_id,
+    people: data.people,
     description: data.description,
     amount: data.amount,
     type: data.type as 'income' | 'expense',
     paymentMode: data.payment_mode,
     date: data.date,
+    occurredAt: data.occurred_at || data.created_at || (data.date ? `${data.date}T00:00:00.000Z` : new Date().toISOString()),
     runningBalance: 0, // Not stored in DB
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   }
 }
 
-export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updatedAt' | 'runningBalance'>): Promise<Entry> {
+export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updatedAt' | 'runningBalance' | 'occurredAt'> & { occurredAt?: string }): Promise<Entry> {
+  const occurredAt = entry.occurredAt || new Date().toISOString()
+  const date = entry.date || occurredAt.split('T')[0]
+
   console.log('📝 Creating entry with data:', {
     book_id: entry.bookId,
     category_id: entry.categoryId,
+    people: entry.people || null,
     description: entry.description,
     amount: entry.amount,
     type: entry.type,
     payment_mode: entry.paymentMode,
-    date: entry.date,
+    date: date,
+    occurred_at: occurredAt,
   })
 
   const { data, error } = await supabase
@@ -322,11 +355,13 @@ export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updat
     .insert([{
       book_id: entry.bookId,
       category_id: entry.categoryId,
+      people: entry.people || null,
       description: entry.description,
       amount: entry.amount,
       type: entry.type,
       payment_mode: entry.paymentMode,
-      date: entry.date,
+      date: date,
+      occurred_at: occurredAt,
     }])
     .select()
     .single()
@@ -344,6 +379,8 @@ export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updat
     throw new Error(error.message || 'Failed to create entry')
   }
 
+  notifyDataChange()
+
   if (!data) {
     throw new Error('No data returned from create entry')
   }
@@ -352,11 +389,13 @@ export async function createEntry(entry: Omit<Entry, 'id' | 'createdAt' | 'updat
     id: data.id,
     bookId: data.book_id,
     categoryId: data.category_id,
+    people: data.people,
     description: data.description,
     amount: data.amount,
     type: data.type as 'income' | 'expense',
     paymentMode: data.payment_mode,
     date: data.date,
+    occurredAt: data.occurred_at || occurredAt,
     runningBalance: 0, // Not stored in DB
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -367,11 +406,16 @@ export async function updateEntry(id: string, updates: Partial<Entry>): Promise<
   const updateData: any = { updated_at: new Date().toISOString() }
   
   if (updates.categoryId !== undefined) updateData.category_id = updates.categoryId
+  if (updates.people !== undefined) updateData.people = updates.people || null
   if (updates.description !== undefined) updateData.description = updates.description
   if (updates.amount !== undefined) updateData.amount = updates.amount
   if (updates.type !== undefined) updateData.type = updates.type
   if (updates.paymentMode !== undefined) updateData.payment_mode = updates.paymentMode
   if (updates.date !== undefined) updateData.date = updates.date
+  if (updates.occurredAt !== undefined) {
+    updateData.occurred_at = updates.occurredAt
+    updateData.date = updates.occurredAt.split('T')[0]
+  }
 
   const { data, error } = await supabase
     .from('entries')
@@ -386,17 +430,21 @@ export async function updateEntry(id: string, updates: Partial<Entry>): Promise<
     return null
   }
 
+  notifyDataChange()
+
   if (!data) return null
 
   return {
     id: data.id,
     bookId: data.book_id,
     categoryId: data.category_id,
+    people: data.people,
     description: data.description,
     amount: data.amount,
     type: data.type as 'income' | 'expense',
     paymentMode: data.payment_mode,
     date: data.date,
+    occurredAt: data.occurred_at || updates.occurredAt || data.created_at || data.date,
     runningBalance: 0, // Not stored in DB
     createdAt: data.created_at,
     updatedAt: data.updated_at,
@@ -414,4 +462,6 @@ export async function deleteEntry(id: string): Promise<void> {
     console.error('Error deleting entry:', error)
     throw error
   }
+
+  notifyDataChange()
 }

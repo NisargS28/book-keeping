@@ -4,8 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
-import { AppSidebar } from "@/components/app-sidebar"
-import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -29,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getCurrentUser } from "@/lib/auth"
-import { getBooks, createBook, deleteBook, updateBook, type Book } from "@/lib/store"
+import { getBooks, createBook, createCategory, createEntry, deleteBook, updateBook, setActiveBookId, type Book } from "@/lib/store"
 import { ArrowUpRight, Plus, Trash2, BookOpen, Edit2, WalletCards } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
@@ -43,6 +41,7 @@ export default function BooksPage() {
   const [bookToEdit, setBookToEdit] = useState<Book | null>(null)
   const [newBookName, setNewBookName] = useState("")
   const [newBookDescription, setNewBookDescription] = useState("")
+  const [initialAmount, setInitialAmount] = useState("")
   const [editBookName, setEditBookName] = useState("")
   const [editBookDescription, setEditBookDescription] = useState("")
   const [loading, setLoading] = useState(true)
@@ -64,15 +63,38 @@ export default function BooksPage() {
     const user = await getCurrentUser()
     if (!user || !newBookName.trim()) return
 
-    await createBook(user.id, newBookName, "INR", newBookDescription)
+    const book = await createBook(user.id, newBookName, "INR", newBookDescription)
+    const openingBalance = Number.parseFloat(initialAmount)
+
+    if (Number.isFinite(openingBalance) && openingBalance > 0) {
+      const openingCategory = await createCategory({
+        bookId: book.id,
+        name: "Opening Balance",
+        color: "#16a34a",
+      })
+
+      const now = new Date()
+      await createEntry({
+        bookId: book.id,
+        categoryId: openingCategory.id,
+        description: "Opening balance",
+        amount: openingBalance,
+        type: "income",
+        paymentMode: "cash",
+        date: now.toISOString().slice(0, 10),
+        occurredAt: now.toISOString(),
+      })
+    }
 
     setNewBookName("")
     setNewBookDescription("")
+    setInitialAmount("")
     setDialogOpen(false)
     loadBooks()
   }
 
   const handleOpenBook = (bookId: string) => {
+    setActiveBookId(bookId)
     router.push(`/ledger/${bookId}`)
   }
 
@@ -118,11 +140,9 @@ export default function BooksPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-background">
         <AppHeader activeBookId={null} />
-        <div className="flex flex-1">
-          <AppSidebar />
-          <main className="flex-1 overflow-auto bg-background p-4 pb-24 md:p-7 md:pb-7">
+        <main className="flex-1 overflow-auto p-4 pb-12 md:p-7 md:pb-12">
           <div className="mx-auto max-w-6xl space-y-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -160,6 +180,18 @@ export default function BooksPage() {
                         placeholder="What is this book for?"
                         value={newBookDescription}
                         onChange={(e) => setNewBookDescription(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateBook()}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="initial-amount">Initial Amount (Optional)</Label>
+                      <Input
+                        id="initial-amount"
+                        type="number"
+                        placeholder="0.00"
+                        value={initialAmount}
+                        onChange={(e) => setInitialAmount(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateBook()}
                       />
                     </div>
                     <Button onClick={handleCreateBook} className="w-full" disabled={!newBookName.trim()}>
@@ -171,14 +203,18 @@ export default function BooksPage() {
             </div>
 
             {books.length === 0 ? (
-              <Card className="border-dashed bg-card/70">
-                <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-                  <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><BookOpen className="h-7 w-7" /></span>
-                  <h2 className="text-lg font-bold">Create your first book</h2>
-                  <p className="mb-5 mt-2 max-w-sm text-sm text-muted-foreground">Set up a dedicated place for personal, business, or project finances.</p>
-                  <Button onClick={() => setDialogOpen(true)} className="gap-2">
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="rounded-2xl bg-primary/10 p-4 text-primary">
+                    <BookOpen className="h-8 w-8" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold">No books yet</h3>
+                  <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                    Create your first cashbook to start tracking your income and expenses.
+                  </p>
+                  <Button className="mt-6 gap-2" onClick={() => setDialogOpen(true)}>
                     <Plus className="h-4 w-4" />
-                    Create Your First Book
+                    Create your first book
                   </Button>
                 </CardContent>
               </Card>
@@ -187,64 +223,72 @@ export default function BooksPage() {
                 {books.map((book) => (
                   <Card
                     key={book.id}
-                    className="group relative cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
-                    onClick={() => handleOpenBook(book.id)}
+                    className="group relative flex flex-col justify-between overflow-hidden border-border/80 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg"
                   >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><WalletCards className="h-5 w-5" /></span>
-                          <div className="min-w-0">
-                          <CardTitle className="mb-1 truncate">{book.name}</CardTitle>
-                          <CardDescription className="line-clamp-2">
-                            {book.description || "No description"}
-                          </CardDescription>
-                          </div>
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-all group-hover:bg-primary/20" />
+                    <CardHeader className="relative space-y-3 pb-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                          <WalletCards className="h-5 w-5" />
                         </div>
+                        <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-secondary-foreground">
+                          {book.currency}
+                        </span>
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold tracking-tight">{book.name}</CardTitle>
+                        <CardDescription className="line-clamp-2 min-h-[2.5rem]">
+                          {book.description || "No description provided"}
+                        </CardDescription>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="rounded-xl bg-muted/70 p-3.5">
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Net balance</p>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`text-2xl font-bold tracking-tight ${book.balance >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(book.balance)}</span>
-                          <ArrowUpRight className={`h-5 w-5 ${book.balance >= 0 ? "text-success" : "rotate-90 text-destructive"}`} />
-                        </div>
+                    <CardContent className="relative space-y-4 pt-0">
+                      <div className="rounded-xl bg-muted/60 p-3">
+                        <p className="text-xs font-medium text-muted-foreground">Net Balance</p>
+                        <p
+                          className={`mt-1 text-2xl font-extrabold tracking-tight ${
+                            book.balance >= 0 ? "text-success" : "text-destructive"
+                          }`}
+                        >
+                          {formatCurrency(book.balance)}
+                        </p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
-                        <span>Last updated</span>
-                        <span>{formatDistanceToNow(new Date(book.updatedAt), { addSuffix: true })}</span>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Updated {formatDistanceToNow(new Date(book.updatedAt), { addSuffix: true })}</span>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2 pt-1">
                         <Button
-                          variant="ghost"
-                          size="sm"
+                          onClick={() => handleOpenBook(book.id)}
                           className="flex-1 gap-2"
-                          onClick={(e) => {
-                            e.stopPropagation()
+                        >
+                          Open Ledger
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
                             setBookToEdit(book)
                             setEditBookName(book.name)
                             setEditBookDescription(book.description || "")
                             setEditDialogOpen(true)
                           }}
+                          className="shrink-0"
                         >
                           <Edit2 className="h-4 w-4" />
-                          Edit
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
                             setBookToDelete(book.id)
                             setDeleteDialogOpen(true)
                           }}
-                          className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
-                          Delete
                         </Button>
                       </div>
                     </CardContent>
@@ -254,9 +298,7 @@ export default function BooksPage() {
             )}
           </div>
         </main>
-        </div>
       </div>
-      <MobileNav />
 
       {/* Edit Book Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
