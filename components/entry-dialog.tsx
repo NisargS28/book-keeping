@@ -16,9 +16,10 @@ interface EntryDialogProps {
   categories: Category[] | undefined
   onEntryCreated: () => void
   entry?: Entry | null
+  initialType?: "income" | "expense"
 }
 
-export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCreated, entry }: EntryDialogProps) {
+export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCreated, entry, initialType = "expense" }: EntryDialogProps) {
   const isEditing = !!entry
   const [type, setType] = useState<"income" | "expense">("expense")
   const [description, setDescription] = useState("")
@@ -54,7 +55,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       setTime(entryDate.toTimeString().slice(0, 5))
     } else if (open) {
       // Reset form for new entry with current date/time
-      setType("expense")
+      setType(initialType)
       setDescription("")
       setAmount("")
       setCategoryId("")
@@ -64,7 +65,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       setDate(now.toISOString().split('T')[0])
       setTime(now.toTimeString().slice(0, 5))
     }
-  }, [open, entry])
+  }, [open, entry, initialType])
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return
@@ -191,28 +192,22 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Entry" : "Add Entry"}</DialogTitle>
           <DialogDescription>{isEditing ? "Update the entry details" : "Create a new entry"}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Type</label>
-            <Select value={type} onValueChange={(value: "income" | "expense") => setType(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Cash In</SelectItem>
-                <SelectItem value="expense">Cash Out</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-5">
+          <div className="rounded-xl bg-muted/70 p-1">
+            <div className="grid grid-cols-2 gap-1">
+              <Button type="button" variant={type === "income" ? "default" : "ghost"} className={type === "income" ? "bg-success hover:bg-success/90" : ""} onClick={() => setType("income")}>Cash in</Button>
+              <Button type="button" variant={type === "expense" ? "destructive" : "ghost"} onClick={() => setType("expense")}>Cash out</Button>
+            </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Description</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Description</label>
             <Input
               placeholder="e.g., Monthly salary"
               value={description}
@@ -220,8 +215,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Amount</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Amount</label>
             <Input
               type="number"
               placeholder="0.00"
@@ -231,8 +226,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Category</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Category</label>
             {!showNewCategory ? (
               <div className="flex gap-2">
                 <Select value={categoryId} onValueChange={setCategoryId}>
@@ -311,8 +306,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
             )}
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Payment Mode (Optional)</label>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Payment mode <span className="font-normal text-muted-foreground">(optional)</span></label>
             <Select value={paymentMode} onValueChange={setPaymentMode}>
               <SelectTrigger>
                 <SelectValue placeholder="Select payment mode" />
@@ -328,8 +323,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Date</label>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Date</label>
               <Input
                 type="date"
                 value={date}
@@ -337,8 +332,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
                 required
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Time</label>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Time</label>
               <Input
                 type="time"
                 value={time}

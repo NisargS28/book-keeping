@@ -9,7 +9,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCurrentUser } from "@/lib/auth"
 import { getBooks, getActiveBookId, setActiveBookId, getEntries, getCategories } from "@/lib/store"
-import { ArrowDownRight, ArrowUpRight, IndianRupee, TrendingUp } from "lucide-react"
+import { ArrowDownRight, ArrowUpRight, IndianRupee, TrendingUp, WalletCards } from "lucide-react"
 import {
   LineChart,
   Line,
@@ -125,11 +125,15 @@ export default function DashboardPage() {
         <AppHeader activeBookId={activeBookId} onBookChange={() => setLoading(true)} />
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 overflow-auto bg-background p-4 md:p-6 pb-20 md:pb-6">
-            <div className="mx-auto max-w-7xl space-y-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-sm md:text-base text-muted-foreground">Overview of your financial activity</p>
+          <main className="flex-1 overflow-auto bg-background p-4 pb-24 md:p-7 md:pb-7">
+            <div className="mx-auto max-w-7xl space-y-7">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">Financial overview</p>
+                  <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Dashboard</h1>
+                  <p className="mt-2 text-sm md:text-base text-muted-foreground">A clear picture of your financial activity.</p>
+                </div>
+                <span className="hidden h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex"><WalletCards className="h-5 w-5" /></span>
               </div>
 
               {/* Stats Cards */}
@@ -145,39 +149,39 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card> */}
 
-                <Card>
+                <Card className="overflow-hidden border-success/15 bg-gradient-to-br from-card to-success/5">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Income</CardTitle>
                     <ArrowUpRight className="h-4 w-4 text-success" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-success">₹{totalIncome.toFixed(2)}</div>
+                    <div className="text-2xl font-bold tracking-tight text-success">₹{totalIncome.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
                       {entries.filter((t) => t.type === "income").length} transactions
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-destructive/15 bg-gradient-to-br from-card to-destructive/5">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
                     <ArrowDownRight className="h-4 w-4 text-destructive" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-destructive">₹{totalExpense.toFixed(2)}</div>
+                    <div className="text-2xl font-bold tracking-tight text-destructive">₹{totalExpense.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">
                       {entries.filter((t) => t.type === "expense").length} transactions
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden bg-gradient-to-br from-card to-primary/5">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Net Cash Flow</CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}>
+                    <div className={`text-2xl font-bold tracking-tight ${balance >= 0 ? "text-success" : "text-destructive"}`}>
                       ₹{balance.toFixed(2)}
                     </div>
                     <p className="text-xs text-muted-foreground">Income - Expenses</p>
@@ -279,9 +283,9 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={entry.id}
-                            className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
+                            className="flex items-center justify-between rounded-xl px-2 py-2 transition-colors hover:bg-muted/60"
                           >
-                            <div className="space-y-1">
+                            <div className="min-w-0 space-y-1">
                               <div className="font-medium">{entry.description}</div>
                               <div className="text-sm text-muted-foreground">
                                 {category?.name} • {entry.paymentMode} •{" "}

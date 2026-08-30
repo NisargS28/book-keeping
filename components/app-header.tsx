@@ -1,6 +1,6 @@
 "use client"
 
-import { BookA as Book2, ChevronDown, LogOut, User, Menu, LayoutDashboard, Settings, Book } from "lucide-react"
+import { BookA as Book2, ChevronDown, LogOut, User, Menu, LayoutDashboard, Settings, Book, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ interface AppHeaderProps {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Books", href: "/books", icon: Book },
+  { name: "Reports", href: "/reports", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -33,19 +34,31 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
   const pathname = usePathname()
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [activeBookName, setActiveBookName] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   useEffect(() => {
     const load = async () => {
       const user = await getCurrentUser()
       if (user) {
-        setDisplayName(user.displayName)
+        setDisplayName(user.displayName ?? null)
         setProfileImage(user.profileImage || null)
       }
     }
     load()
   }, [])
-  const activeBook = activeBookId ? getBook(activeBookId) : null
+
+  useEffect(() => {
+    const loadBook = async () => {
+      if (!activeBookId) {
+        setActiveBookName(null)
+        return
+      }
+      const book = await getBook(activeBookId)
+      setActiveBookName(book?.name ?? null)
+    }
+    loadBook()
+  }, [activeBookId])
 
   const handleLogout = () => {
     logout()
@@ -53,9 +66,9 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
   }
 
   return (
-    <header className="border-b border-border bg-card">
-      <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 border-b border-border/80 bg-card/85 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-4 md:px-7">
+        <div className="flex min-w-0 items-center gap-3 md:gap-4">
           {/* Mobile Menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -63,10 +76,10 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetHeader className="flex items-center gap-2 border-b px-6 py-4">
+              <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="flex items-center gap-2 border-b px-6 py-5">
                 <SheetTitle className="flex items-center gap-2">
-                  <Book2 className="h-6 w-6 text-primary" />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Book2 className="h-5 w-5" /></span>
                   <span className="text-xl font-semibold">CashBook</span>
                 </SheetTitle>
               </SheetHeader>
@@ -79,7 +92,7 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -94,23 +107,25 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
             </SheetContent>
           </Sheet>
           
-          <div className="flex items-center gap-2">
-            <Book2 className="h-6 w-6 text-primary" />
-            <span className="text-lg md:text-xl font-semibold">CashBook</span>
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Book2 className="h-5 w-5" />
+            </span>
+            <span className="text-lg font-bold tracking-tight md:text-xl">CashBook</span>
           </div>
 
-          {activeBook && (
+          {activeBookName && (
             <>
-              <div className="h-6 w-px bg-border" />
+              <div className="hidden h-6 w-px bg-border sm:block" />
               <Button
                 variant="ghost"
-                className="gap-2"
+                className="hidden max-w-56 gap-2 sm:inline-flex"
                 onClick={() => {
                   router.push("/books")
                   onBookChange?.()
                 }}
               >
-                <span className="font-medium">{activeBook.name}</span>
+                <span className="truncate font-medium">{activeBookName}</span>
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </>
@@ -119,8 +134,14 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2">
-              <User className="h-4 w-4" />
+            <Button variant="ghost" className="gap-2 rounded-full px-2.5">
+              {profileImage ? (
+                <img src={profileImage} alt="" className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {(displayName ?? "U").slice(0, 1).toUpperCase()}
+                </span>
+              )}
               <span className="hidden md:inline">{displayName ?? "User"}</span>
               <ChevronDown className="hidden md:inline h-4 w-4" />
             </Button>

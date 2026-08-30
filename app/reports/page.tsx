@@ -366,7 +366,7 @@ export default function ReportsPage() {
   return (
     <AuthGuard>
       <div className="flex min-h-screen flex-col">
-        <AppHeader activeBookId={selectedBookId} onBookChange={(bookId) => setSelectedBookId(bookId)} />
+        <AppHeader activeBookId={selectedBookId} />
         <div className="flex flex-1">
           <AppSidebar />
           <main className="flex-1 overflow-auto bg-background p-4 md:p-6 pb-20 md:pb-6">

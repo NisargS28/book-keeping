@@ -116,20 +116,21 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
     <AuthGuard>
       <div className="flex min-h-screen flex-col bg-background">
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b bg-card">
-          <div className="container flex h-auto min-h-16 flex-col gap-3 px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:px-6 md:py-0">
+        <div className="sticky top-0 z-30 border-b border-border/80 bg-card/90 backdrop-blur-xl">
+          <div className="container flex h-auto min-h-16 flex-col gap-3 px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:px-7 md:py-0">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => router.push("/books")}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-lg md:text-xl font-semibold">{book.name}</h1>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">Ledger</p>
+                <h1 className="text-lg font-bold tracking-tight md:text-xl">{book.name}</h1>
                 {book.description && <p className="text-xs md:text-sm text-muted-foreground">{book.description}</p>}
               </div>
             </div>
             {/* Desktop buttons */}
             <div className="hidden md:flex items-center gap-2">
-              <Button onClick={handleAddCashIn} className="gap-2 bg-green-600 hover:bg-green-700 text-sm">
+              <Button onClick={handleAddCashIn} className="gap-2 bg-success hover:bg-success/90 text-sm">
                 <Plus className="h-4 w-4" />
                 Cash In
               </Button>
@@ -142,9 +143,9 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
         </div>
 
         {/* Mobile sticky buttons at bottom */}
-        <div className="md:hidden fixed bottom-16 left-0 right-0 z-50 border-t bg-card p-3 shadow-lg">
+        <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border/80 bg-card/95 p-3 shadow-lg backdrop-blur-xl md:hidden">
           <div className="flex items-center gap-2">
-            <Button onClick={handleAddCashIn} className="flex-1 gap-2 bg-green-600 hover:bg-green-700">
+            <Button onClick={handleAddCashIn} className="flex-1 gap-2 bg-success hover:bg-success/90">
               <Plus className="h-4 w-4" />
               Cash In
             </Button>
@@ -157,32 +158,32 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
 
         <div className="flex flex-1">
           <AppSidebar />
-          <main className="flex-1 overflow-auto p-4 md:p-6 pb-32 md:pb-20">
-          <div className="container mx-auto max-w-7xl space-y-6">
+          <main className="flex-1 overflow-auto p-4 pb-36 md:p-7 md:pb-8">
+          <div className="container mx-auto max-w-7xl space-y-7">
             {/* Summary Bar - Desktop */}
             <div className="hidden md:grid gap-4 md:grid-cols-3">
-              <Card>
+              <Card className="border-success/15 bg-gradient-to-br from-card to-success/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash In</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div>
+                  <div className="text-2xl font-bold tracking-tight text-success">{formatCurrency(totalIncome)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-destructive/15 bg-gradient-to-br from-card to-destructive/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash Out</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpense)}</div>
+                  <div className="text-2xl font-bold tracking-tight text-destructive">{formatCurrency(totalExpense)}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-gradient-to-br from-card to-primary/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Net Balance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${book.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <div className={`text-2xl font-bold tracking-tight ${book.balance >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(book.balance)}
                   </div>
                 </CardContent>
@@ -365,7 +366,7 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
                       </TableHeader>
                       <TableBody>
                         {filteredEntries.map((entry) => (
-                          <TableRow key={entry.id}>
+                          <TableRow key={entry.id} className="transition-colors hover:bg-muted/50">
                             <TableCell className="whitespace-nowrap">
                               {format(new Date(entry.date), "MMM dd, yyyy HH:mm")}
                             </TableCell>
@@ -410,6 +411,7 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
           </div>
         </main>
         </div>
+        <MobileNav />
       </div>
 
       <EntryDialog
@@ -419,6 +421,7 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
         categories={categories}
         onEntryCreated={loadData}
         entry={entryToEdit}
+        initialType={dialogType}
       />
     </AuthGuard>
   )
