@@ -28,6 +28,7 @@ function ReportsContent() {
   const [generating, setGenerating] = useState(false)
   const [entries, setEntries] = useState<Entry[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [userId, setUserId] = useState<string>("")
 
   useEffect(() => {
     const init = async () => {
@@ -43,6 +44,7 @@ function ReportsContent() {
         return
       }
 
+      setUserId(user.id)
       setBooks(userBooks)
       
       // If bookIdParam is valid in user's books, select it, otherwise select the first book
@@ -59,15 +61,15 @@ function ReportsContent() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (selectedBookId) {
-        const bookEntries = await getEntries(selectedBookId)
-        const bookCategories = await getCategories(selectedBookId)
+      if (selectedBookId && userId) {
+        const bookEntries = await getEntries(selectedBookId, userId)
+        const bookCategories = await getCategories(selectedBookId, userId)
         setEntries(bookEntries)
         setCategories(bookCategories)
       }
     }
     loadData()
-  }, [selectedBookId])
+  }, [selectedBookId, userId])
 
   const generatePDF = () => {
     setGenerating(true)

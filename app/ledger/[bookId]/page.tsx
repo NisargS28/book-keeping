@@ -24,13 +24,13 @@ import {
   Calendar,
   X,
   FileText,
+  ShieldCheck,
 } from "lucide-react"
 import { format } from "date-fns"
 import { EntryDialog } from "@/components/entry-dialog"
 import { EntryDetailSheet } from "@/components/entry-detail-sheet"
 
-export default function LedgerPage({ params }: { params: Promise<{ bookId: string }> }) {
-  const { bookId } = use(params)
+function LedgerContent({ bookId }: { bookId: string }) {
   const router = useRouter()
   const [book, setBook] = useState<any>(null)
   const [entries, setEntries] = useState<Entry[]>([])
@@ -50,18 +50,23 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
   const [selectedEntryForDetail, setSelectedEntryForDetail] = useState<Entry | null>(null)
   
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>("")
 
   const loadData = async () => {
+    const { getCurrentUser } = await import("@/lib/auth")
+    const user = await getCurrentUser()
+    if (!user) { router.push("/login"); return }
+    setCurrentUserId(user.id)
     setActiveBookId(bookId)
-    const bookData = await getBook(bookId)
+    const bookData = await getBook(bookId, user.id)
     if (!bookData) {
       router.push("/books")
       return
     }
 
     setBook(bookData)
-    const bookEntries = await getEntries(bookId)
-    const bookCategories = await getCategories(bookId)
+    const bookEntries = await getEntries(bookId, user.id)
+    const bookCategories = await getCategories(bookId, user.id)
     setEntries(bookEntries)
     setFilteredEntries(bookEntries)
     setCategories(bookCategories)
@@ -248,12 +253,15 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
   }, [filteredEntries])
 
   if (!book) {
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground text-sm font-medium">Loading ledger...</div>
+      </div>
+    )
   }
 
   return (
-    <AuthGuard>
-      <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
         {/* Top Header */}
         <div className="sticky top-0 z-30 border-b border-border/80 bg-card/90 backdrop-blur-xl">
           <div className="container flex h-auto min-h-16 flex-col gap-3 px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:px-7 md:py-0">
@@ -881,15 +889,24 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
                 )}
               </CardContent>
             </Card>
+
+            {/* End-to-End Encryption Notice */}
+            <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-border/80 bg-muted/40 py-3.5 px-4 text-xs text-muted-foreground text-center shadow-xs">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>
+                All ledger transactions in this book are <strong className="text-foreground">End-to-End Encrypted (AES-256-GCM)</strong> in your browser before saving.
+              </span>
+            </div>
           </div>
         </main>
-      </div>
+
 
       {/* Entry Create / Edit Dialog */}
       <EntryDialog
         open={entryDialogOpen}
         onOpenChange={setEntryDialogOpen}
         bookId={bookId}
+        userId={currentUserId}
         categories={categories}
         onEntryCreated={loadData}
         entry={entryToEdit}
@@ -905,6 +922,16 @@ export default function LedgerPage({ params }: { params: Promise<{ bookId: strin
         onEdit={handleEdit}
         onDelete={handleDeleteEntryFromSheet}
       />
+    </div>
+  )
+}
+
+export default function LedgerPage({ params }: { params: Promise<{ bookId: string }> }) {
+  const { bookId } = use(params)
+
+  return (
+    <AuthGuard>
+      <LedgerContent bookId={bookId} />
     </AuthGuard>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
+import { clearDataKey, hasEncryptionSetup } from '@/lib/encryption'
 
 export interface User {
   id: string
@@ -70,7 +71,7 @@ export async function signUp(
 export async function login(
   email: string,
   password: string
-): Promise<{ user: User | null; error?: any }> {
+): Promise<{ user: User | null; needsEncryptionSetup?: boolean; error?: any }> {
   try {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
@@ -92,6 +93,9 @@ export async function login(
       .eq('id', authData.user.id)
       .single()
 
+    // Check whether encryption has been set up for this account
+    const needsEncryptionSetup = !(await hasEncryptionSetup(authData.user.id))
+
     return {
       user: {
         id: authData.user.id,
@@ -100,6 +104,7 @@ export async function login(
         profileImage: profile?.profile_image,
         createdAt: authData.user.created_at,
       },
+      needsEncryptionSetup,
     }
   } catch (error: any) {
     console.error('❌ Login failed:', error)
@@ -111,6 +116,9 @@ export async function login(
  * Log out the current user
  */
 export async function logout(): Promise<void> {
+  // Clear the in-memory encryption key BEFORE signing out of Supabase.
+  // This ensures the key is wiped even if signOut() encounters a network error.
+  clearDataKey()
   await supabase.auth.signOut()
 }
 

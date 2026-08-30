@@ -28,8 +28,25 @@ import {
   createCategory,
   deleteCategory,
 } from "@/lib/store"
-import { Trash2, Plus, ArrowLeft, User, MessageSquare, Tag, Palette } from "lucide-react"
+import {
+  Trash2,
+  Plus,
+  ArrowLeft,
+  User,
+  MessageSquare,
+  Tag,
+  Palette,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  Copy,
+  Check,
+  Download,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react"
 import { Category } from "@/lib/types"
+import { regenerateRecoverySecret, changeEncryptionPassphrase } from "@/lib/encryption"
 
 function SettingsContent() {
   const router = useRouter()
@@ -68,6 +85,22 @@ function SettingsContent() {
   const [currentWhatsappPhone, setCurrentWhatsappPhone] = useState<string | null>(null)
   const [savingWhatsApp, setSavingWhatsApp] = useState(false)
   const [whatsappError, setWhatsappError] = useState("")
+
+  // Security / Encryption state
+  const [regenDialogOpen, setRegenDialogOpen] = useState(false)
+  const [regenPassphrase, setRegenPassphrase] = useState("")
+  const [regenLoading, setRegenLoading] = useState(false)
+  const [regenError, setRegenError] = useState("")
+  const [newRecoverySecret, setNewRecoverySecret] = useState<string | null>(null)
+  const [copiedSecret, setCopiedSecret] = useState(false)
+
+  const [changePassDialogOpen, setChangePassDialogOpen] = useState(false)
+  const [oldPassphrase, setOldPassphrase] = useState("")
+  const [newPassphrase, setNewPassphrase] = useState("")
+  const [confirmNewPassphrase, setConfirmNewPassphrase] = useState("")
+  const [changePassLoading, setChangePassLoading] = useState(false)
+  const [changePassError, setChangePassError] = useState("")
+  const [changePassSuccess, setChangePassSuccess] = useState("")
 
   useEffect(() => {
     if (tabParam) {
@@ -113,7 +146,7 @@ function SettingsContent() {
       }
 
       setActiveBookIdState(bookId)
-      const cats = await getCategories(bookId)
+      const cats = await getCategories(bookId, currentUser.id)
       setCategories(cats)
       setLoading(false)
     } catch (error) {
@@ -228,6 +261,8 @@ function SettingsContent() {
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim() || !activeBookId) return
+    const currentUser = user
+    if (!currentUser) return
 
     try {
       setSavingCategory(true)
@@ -235,7 +270,7 @@ function SettingsContent() {
         bookId: activeBookId,
         name: newCategoryName,
         color: newCategoryColor,
-      })
+      }, currentUser.id)
       setCategories([...categories, newCategory])
       setNewCategoryName("")
       setNewCategoryColor("#8b5cf6")
@@ -260,6 +295,82 @@ function SettingsContent() {
       console.error("Error deleting category:", error)
     } finally {
       setDeletingCategory(false)
+    }
+  }
+
+  const handleRegenerateRecovery = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !regenPassphrase) return
+    setRegenLoading(true)
+    setRegenError("")
+    try {
+      const { recoverySecret } = await regenerateRecoverySecret(regenPassphrase, user.id)
+      setNewRecoverySecret(recoverySecret)
+      setRegenPassphrase("")
+    } catch (err: any) {
+      setRegenError(err?.message || "Failed to generate recovery secret. Please check your passphrase.")
+    } finally {
+      setRegenLoading(false)
+    }
+  }
+
+  const handleCopyRecoverySecret = async () => {
+    if (!newRecoverySecret) return
+    await navigator.clipboard.writeText(newRecoverySecret)
+    setCopiedSecret(true)
+    setTimeout(() => setCopiedSecret(false), 2000)
+  }
+
+  const handleDownloadRecoverySecret = () => {
+    if (!newRecoverySecret) return
+    const blob = new Blob(
+      [
+        `CashBook Zero-Knowledge Encryption Recovery Secret\n` +
+          `==================================================\n\n` +
+          `Save this in a secure location (e.g. password manager, safe offline storage).\n` +
+          `Do NOT share this secret with anyone. Our servers do not have this key.\n\n` +
+          `Recovery Secret:\n${newRecoverySecret}\n`,
+      ],
+      { type: "text/plain" }
+    )
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "cashbook-recovery-secret.txt"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleChangePassphrase = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    if (newPassphrase.length < 12) {
+      setChangePassError("New passphrase must be at least 12 characters.")
+      return
+    }
+    if (newPassphrase !== confirmNewPassphrase) {
+      setChangePassError("New passphrases do not match.")
+      return
+    }
+
+    setChangePassLoading(true)
+    setChangePassError("")
+    setChangePassSuccess("")
+
+    try {
+      await changeEncryptionPassphrase(oldPassphrase, newPassphrase, user.id)
+      setChangePassSuccess("Encryption passphrase updated successfully.")
+      setOldPassphrase("")
+      setNewPassphrase("")
+      setConfirmNewPassphrase("")
+      setTimeout(() => {
+        setChangePassDialogOpen(false)
+        setChangePassSuccess("")
+      }, 1500)
+    } catch (err: any) {
+      setChangePassError(err?.message || "Failed to change passphrase. Verify your current passphrase.")
+    } finally {
+      setChangePassLoading(false)
     }
   }
 
@@ -300,10 +411,14 @@ function SettingsContent() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="profile" className="text-xs md:text-sm gap-1.5">
                 <User className="h-4 w-4 hidden sm:inline" />
                 Profile
+              </TabsTrigger>
+              <TabsTrigger value="security" className="text-xs md:text-sm gap-1.5">
+                <ShieldCheck className="h-4 w-4 hidden sm:inline text-primary" />
+                Security
               </TabsTrigger>
               <TabsTrigger value="whatsapp" className="text-xs md:text-sm gap-1.5">
                 <MessageSquare className="h-4 w-4 hidden sm:inline" />
@@ -384,6 +499,254 @@ function SettingsContent() {
                   </Dialog>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Security & Encryption Tab */}
+            <TabsContent value="security" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    Zero-Knowledge Encryption
+                  </CardTitle>
+                  <CardDescription>
+                    All books, categories, and ledger entries are client-side encrypted with AES-256-GCM before reaching the server.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2 text-xs leading-relaxed">
+                    <div className="flex items-center gap-2 font-semibold text-primary">
+                      <Lock className="h-4 w-4" />
+                      <span>End-to-End Client Encryption Active</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      The database only stores ciphertext. Your encryption key is held only in browser memory and is wiped whenever you lock or refresh.
+                    </p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                    {/* Regenerate Recovery Secret Card */}
+                    <div className="rounded-xl border border-border/80 bg-card p-4 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-semibold text-sm">
+                          <KeyRound className="h-4 w-4 text-amber-500" />
+                          <span>Emergency Recovery Secret</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Generate or re-save your 64-character recovery secret to restore access if you ever forget your passphrase.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 text-xs font-semibold"
+                        onClick={() => {
+                          setNewRecoverySecret(null)
+                          setRegenError("")
+                          setRegenPassphrase("")
+                          setRegenDialogOpen(true)
+                        }}
+                      >
+                        <KeyRound className="h-4 w-4 text-amber-500" />
+                        Generate / Save Recovery Secret
+                      </Button>
+                    </div>
+
+                    {/* Change Passphrase Card */}
+                    <div className="rounded-xl border border-border/80 bg-card p-4 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-semibold text-sm">
+                          <Lock className="h-4 w-4 text-primary" />
+                          <span>Change Passphrase</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Update your encryption passphrase without re-encrypting your existing ledger records.
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 text-xs font-semibold"
+                        onClick={() => {
+                          setOldPassphrase("")
+                          setNewPassphrase("")
+                          setConfirmNewPassphrase("")
+                          setChangePassError("")
+                          setChangePassSuccess("")
+                          setChangePassDialogOpen(true)
+                        }}
+                      >
+                        <Lock className="h-4 w-4 text-primary" />
+                        Change Passphrase
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recovery Secret Dialog */}
+              <Dialog open={regenDialogOpen} onOpenChange={setRegenDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <KeyRound className="h-5 w-5 text-amber-500" />
+                      Recovery Secret
+                    </DialogTitle>
+                    <DialogDescription>
+                      {newRecoverySecret
+                        ? "Save this recovery secret in a secure location. It can unlock your ledger if you forget your passphrase."
+                        : "Enter your current encryption passphrase to generate a fresh recovery secret."}
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {newRecoverySecret ? (
+                    <div className="space-y-4 pt-2">
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          <AlertTriangle className="h-4 w-4" />
+                          One-Time Emergency Secret
+                        </span>
+                        <div className="rounded-lg bg-background p-3 border border-border font-mono text-xs font-semibold break-all select-all">
+                          {(newRecoverySecret.match(/.{1,8}/g) ?? []).join("-")}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={handleCopyRecoverySecret}
+                        >
+                          {copiedSecret ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                          {copiedSecret ? "Copied!" : "Copy Secret"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={handleDownloadRecoverySecret}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download .txt
+                        </Button>
+                      </div>
+
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={() => {
+                          setRegenDialogOpen(false)
+                          setNewRecoverySecret(null)
+                        }}
+                      >
+                        I Have Saved It
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleRegenerateRecovery} className="space-y-4 pt-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block">
+                          Current Encryption Passphrase
+                        </label>
+                        <Input
+                          type="password"
+                          placeholder="Enter your current passphrase"
+                          value={regenPassphrase}
+                          onChange={(e) => setRegenPassphrase(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                      </div>
+
+                      {regenError && (
+                        <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 font-medium">
+                          {regenError}
+                        </div>
+                      )}
+
+                      <Button type="submit" disabled={regenLoading || !regenPassphrase} className="w-full">
+                        {regenLoading ? "Generating..." : "Generate New Secret"}
+                      </Button>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* Change Passphrase Dialog */}
+              <Dialog open={changePassDialogOpen} onOpenChange={setChangePassDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Lock className="h-5 w-5 text-primary" />
+                      Change Passphrase
+                    </DialogTitle>
+                    <DialogDescription>
+                      Enter your current passphrase and choose a new passphrase of at least 12 characters.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form onSubmit={handleChangePassphrase} className="space-y-4 pt-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground block">
+                        Current Passphrase
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="Current passphrase"
+                        value={oldPassphrase}
+                        onChange={(e) => setOldPassphrase(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground block">
+                        New Passphrase (min 12 chars)
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="New passphrase"
+                        value={newPassphrase}
+                        onChange={(e) => setNewPassphrase(e.target.value)}
+                        required
+                        minLength={12}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-muted-foreground block">
+                        Confirm New Passphrase
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="Confirm new passphrase"
+                        value={confirmNewPassphrase}
+                        onChange={(e) => setConfirmNewPassphrase(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    {changePassError && (
+                      <div className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 font-medium">
+                        {changePassError}
+                      </div>
+                    )}
+
+                    {changePassSuccess && (
+                      <div className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20 font-medium flex items-center gap-1.5">
+                        <Check className="h-4 w-4 shrink-0" />
+                        <span>{changePassSuccess}</span>
+                      </div>
+                    )}
+
+                    <Button type="submit" disabled={changePassLoading} className="w-full">
+                      {changePassLoading ? "Updating..." : "Update Passphrase"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* WhatsApp Tab */}

@@ -9,6 +9,8 @@ import {
   MessageSquare,
   Tag,
   Palette,
+  Lock,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +25,7 @@ import { getCurrentUser, logout } from "@/lib/auth"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getBook } from "@/lib/store"
+import { useEncryption } from "@/components/encryption-provider"
 import Link from "next/link"
 
 interface AppHeaderProps {
@@ -32,15 +35,19 @@ interface AppHeaderProps {
 
 export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
   const router = useRouter()
+  const { lock } = useEncryption()
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [activeBookName, setActiveBookName] = useState<string | null>(null)
   
+  const [userId, setUserId] = useState<string>("")
+
   useEffect(() => {
     const load = async () => {
       const user = await getCurrentUser()
       if (user) {
+        setUserId(user.id)
         setDisplayName(user.displayName ?? null)
         setUserEmail(user.email ?? null)
         setProfileImage(user.profileImage || null)
@@ -51,15 +58,15 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
 
   useEffect(() => {
     const loadBook = async () => {
-      if (!activeBookId) {
+      if (!activeBookId || !userId) {
         setActiveBookName(null)
         return
       }
-      const book = await getBook(activeBookId)
+      const book = await getBook(activeBookId, userId)
       setActiveBookName(book?.name ?? null)
     }
     loadBook()
-  }, [activeBookId])
+  }, [activeBookId, userId])
 
   const handleLogout = () => {
     logout()
@@ -98,10 +105,18 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
           )}
         </div>
 
-        {/* Profile & Settings Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 rounded-full px-2.5">
+        <div className="flex items-center gap-3">
+          {/* End-to-End Encryption Badge */}
+          <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 sm:flex shadow-xs select-none">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>End-to-End Encrypted🔐</span>
+          </div>
+
+
+          {/* Profile & Settings Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2 rounded-full px-2.5">
               {profileImage ? (
                 <img src={profileImage} alt="" className="h-7 w-7 rounded-full object-cover" />
               ) : (
@@ -149,6 +164,14 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
 
             <DropdownMenuItem
               className="cursor-pointer gap-2"
+              onClick={() => router.push("/settings?tab=security")}
+            >
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span>Security & Recovery</span>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className="cursor-pointer gap-2"
               onClick={() => router.push("/settings?tab=whatsapp")}
             >
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -181,6 +204,15 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
 
             <DropdownMenuSeparator />
 
+            {/* Lock Vault */}
+            <DropdownMenuItem
+              className="cursor-pointer gap-2 text-amber-600 dark:text-amber-400 focus:text-amber-600"
+              onClick={() => lock()}
+            >
+              <Lock className="h-4 w-4" />
+              <span>Lock Vault</span>
+            </DropdownMenuItem>
+
             {/* Sign Out */}
             <DropdownMenuItem
               className="cursor-pointer gap-2 text-destructive focus:text-destructive"
@@ -191,6 +223,7 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   )

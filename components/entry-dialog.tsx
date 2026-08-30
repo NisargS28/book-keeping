@@ -11,6 +11,7 @@ import { Plus } from "lucide-react"
 
 interface EntryDialogProps {
   bookId: string
+  userId: string
   open: boolean
   onOpenChange: (open: boolean) => void
   categories: Category[] | undefined
@@ -19,7 +20,7 @@ interface EntryDialogProps {
   initialType?: "income" | "expense"
 }
 
-export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCreated, entry, initialType = "expense" }: EntryDialogProps) {
+export function EntryDialog({ bookId, userId, open, onOpenChange, categories, onEntryCreated, entry, initialType = "expense" }: EntryDialogProps) {
   const isEditing = !!entry
   const [type, setType] = useState<"income" | "expense">("expense")
   const [description, setDescription] = useState("")
@@ -91,7 +92,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
         bookId,
         name: newCategoryName,
         color: newCategoryColor,
-      })
+      }, userId)
       setCategoryId(newCategory.id)
       setLocalCategories([...localCategories, newCategory])
       setNewCategoryName("")
@@ -105,26 +106,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
   }
 
   const handleSaveEntry = async () => {
-    console.log("🔍 Checking form values:", {
-      description,
-      people,
-      amount,
-      categoryId,
-      date,
-      time,
-      paymentMode,
-      type,
-      bookId,
-    })
-
     if (!description.trim() || !amount || !categoryId || !date || !time) {
-      console.error("❌ Validation failed:", {
-        hasDescription: !!description.trim(),
-        hasAmount: !!amount,
-        hasCategoryId: !!categoryId,
-        hasDate: !!date,
-        hasTime: !!time,
-      })
       alert("Please fill in all fields")
       return
     }
@@ -138,19 +120,8 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       const entryDateTime = new Date(y, m - 1, d, h, min, 0)
       const occurredAtIso = entryDateTime.toISOString()
       
-      console.log("💾 Saving entry with:", {
-        bookId,
-        categoryId,
-        description,
-        amount: parseFloat(amount),
-        type,
-        paymentMode: paymentMode || "",
-        date,
-        occurredAt: occurredAtIso,
-      })
-      
       if (isEditing && entry) {
-        await updateEntry(entry.id, {
+        await updateEntry(entry.id, entry.bookId, userId, {
           description,
           people: people.trim() || null,
           amount: parseFloat(amount),
@@ -163,6 +134,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       } else {
         await createEntry({
           bookId,
+          userId,
           categoryId,
           description,
           people: people.trim() || null,
@@ -174,7 +146,6 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
         })
       }
 
-      console.log("✅ Entry saved successfully")
       setDescription("")
       setPeople("")
       setAmount("")
@@ -184,13 +155,7 @@ export function EntryDialog({ bookId, open, onOpenChange, categories, onEntryCre
       onOpenChange(false)
       onEntryCreated()
     } catch (error: any) {
-      console.error("❌ Error saving entry:", {
-        error,
-        errorMessage: error?.message,
-        errorString: String(error),
-        errorJSON: JSON.stringify(error),
-        stack: error?.stack,
-      })
+      console.error("Error saving entry:", error?.message)
       alert(`Failed to save entry: ${error?.message || "Unknown error"}`)
     } finally {
       setSaving(false)
