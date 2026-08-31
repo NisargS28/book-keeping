@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import {
   Sheet,
   SheetContent,
@@ -19,9 +18,9 @@ import {
   TrendingUp,
   TrendingDown,
   Edit2,
-  Trash2,
   FileText,
   History,
+  EllipsisVertical,
 } from "lucide-react"
 
 interface EntryDetailSheetProps {
@@ -30,7 +29,7 @@ interface EntryDetailSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEdit: (entry: Entry) => void
-  onDelete: (entry: Entry) => Promise<void>
+  onMoreActions: (entry: Entry) => void
 }
 
 export function EntryDetailSheet({
@@ -39,10 +38,8 @@ export function EntryDetailSheet({
   open,
   onOpenChange,
   onEdit,
-  onDelete,
+  onMoreActions,
 }: EntryDetailSheetProps) {
-  const [deleting, setDeleting] = useState(false)
-
   if (!entry) return null
 
   const category = categories.find((c) => c.id === entry.categoryId)
@@ -54,20 +51,6 @@ export function EntryDetailSheet({
       style: "currency",
       currency: "INR",
     }).format(amount)
-  }
-
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this entry?")) return
-    try {
-      setDeleting(true)
-      await onDelete(entry)
-      onOpenChange(false)
-    } catch (error) {
-      console.error("Error deleting entry:", error)
-      alert("Failed to delete entry")
-    } finally {
-      setDeleting(false)
-    }
   }
 
   const handleEdit = () => {
@@ -236,20 +219,18 @@ export function EntryDetailSheet({
             variant="outline"
             className="flex-1 gap-2 border-border/80"
             onClick={handleEdit}
-            disabled={deleting}
           >
             <Edit2 className="h-4 w-4" />
             Edit
           </Button>
           <Button
             type="button"
-            variant="destructive"
-            className="flex-1 gap-2"
-            onClick={handleDelete}
-            disabled={deleting}
+            variant="outline"
+            className="flex-1 gap-2 border-border/80"
+            onClick={() => onMoreActions(entry)}
           >
-            <Trash2 className="h-4 w-4" />
-            {deleting ? "Deleting..." : "Delete"}
+            <EllipsisVertical className="h-4 w-4" />
+            More Actions
           </Button>
         </div>
       </SheetContent>

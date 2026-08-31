@@ -109,7 +109,7 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
           {/* End-to-End Encryption Badge */}
           <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 sm:flex shadow-xs select-none">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>End-to-End Encrypted🔐</span>
+            <span>End-to-End Encrypted</span>
           </div>
 
 

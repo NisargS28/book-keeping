@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
+import { EntryDialog } from "@/components/entry-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -27,8 +28,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getCurrentUser } from "@/lib/auth"
-import { getBooks, createBook, createCategory, createEntry, deleteBook, updateBook, setActiveBookId, type Book } from "@/lib/store"
-import { ArrowUpRight, Plus, Trash2, BookOpen, Edit2, WalletCards, LayoutDashboard, ShieldCheck } from "lucide-react"
+import { getBooks, getCategories, createBook, createCategory, createEntry, deleteBook, updateBook, setActiveBookId, type Book, type Category } from "@/lib/store"
+import { ArrowUpRight, Plus, Minus, Trash2, BookOpen, Edit2, WalletCards, LayoutDashboard } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 function BooksContent() {
@@ -44,12 +45,20 @@ function BooksContent() {
   const [initialAmount, setInitialAmount] = useState("")
   const [editBookName, setEditBookName] = useState("")
   const [editBookDescription, setEditBookDescription] = useState("")
+  const [bookPickerOpen, setBookPickerOpen] = useState(false)
+  const [entryDialogOpen, setEntryDialogOpen] = useState(false)
+  const [selectedEntryBook, setSelectedEntryBook] = useState<Book | null>(null)
+  const [selectedBookCategories, setSelectedBookCategories] = useState<Category[]>([])
+  const [entryType, setEntryType] = useState<"income" | "expense">("income")
+  const [selectingBook, setSelectingBook] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState("")
   const [loading, setLoading] = useState(true)
 
   const loadBooks = async () => {
     const user = await getCurrentUser()
     if (!user) return
 
+    setCurrentUserId(user.id)
     const userBooks = await getBooks(user.id)
     setBooks(userBooks)
     setLoading(false)
@@ -99,6 +108,34 @@ function BooksContent() {
     router.push(`/ledger/${bookId}`)
   }
 
+  const handleCashAction = (type: "income" | "expense") => {
+    setEntryType(type)
+
+    if (books.length === 0) {
+      setDialogOpen(true)
+      return
+    }
+
+    setBookPickerOpen(true)
+  }
+
+  const handleSelectEntryBook = async (book: Book) => {
+    const user = await getCurrentUser()
+    if (!user) return
+
+    try {
+      setSelectingBook(true)
+      const categories = await getCategories(book.id, user.id)
+      setCurrentUserId(user.id)
+      setSelectedEntryBook(book)
+      setSelectedBookCategories(categories)
+      setBookPickerOpen(false)
+      setEntryDialogOpen(true)
+    } finally {
+      setSelectingBook(false)
+    }
+  }
+
   const handleEditBook = async () => {
     if (!bookToEdit || !editBookName.trim()) return
     const user = await getCurrentUser()
@@ -142,7 +179,7 @@ function BooksContent() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <AppHeader activeBookId={null} />
-        <main className="flex-1 overflow-auto p-4 pb-12 md:p-7 md:pb-12">
+        <main className="flex-1 overflow-auto p-4 pb-28 md:p-7 md:pb-28">
           <div className="mx-auto max-w-6xl space-y-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -314,16 +351,63 @@ function BooksContent() {
               </div>
             )}
 
-            {/* End-to-End Encryption Notice */}
-            <div className="mt-8 flex items-center justify-center gap-2 rounded-xl border border-border/80 bg-muted/40 py-3.5 px-4 text-xs text-muted-foreground text-center shadow-xs">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>
-                Your financial data is <strong className="text-foreground">End-to-End Encrypted🔐</strong>. Only your device holds the decryption keys.
-              </span>
-            </div>
           </div>
         </main>
 
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center gap-2">
+          <Button
+            onClick={() => handleCashAction("income")}
+            className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90"
+          >
+            <Plus className="h-4 w-4" />
+            Cash In
+          </Button>
+          <Button
+            onClick={() => handleCashAction("expense")}
+            variant="destructive"
+            className="h-11 flex-1 gap-2 font-semibold"
+          >
+            <Minus className="h-4 w-4" />
+            Cash Out
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={bookPickerOpen} onOpenChange={setBookPickerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a book</DialogTitle>
+            <DialogDescription>
+              Choose the book for this {entryType === "income" ? "Cash In" : "Cash Out"} entry.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+            {books.map((book) => (
+              <Button
+                key={book.id}
+                type="button"
+                variant="outline"
+                className="h-auto w-full justify-between gap-4 px-4 py-3 text-left"
+                onClick={() => handleSelectEntryBook(book)}
+                disabled={selectingBook}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{book.name}</span>
+                  {book.description && (
+                    <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                      {book.description}
+                    </span>
+                  )}
+                </span>
+                <span className={`shrink-0 text-sm font-bold ${book.balance >= 0 ? "text-success" : "text-destructive"}`}>
+                  {formatCurrency(book.balance)}
+                </span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Book Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -379,6 +463,18 @@ function BooksContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedEntryBook && currentUserId && (
+        <EntryDialog
+          bookId={selectedEntryBook.id}
+          userId={currentUserId}
+          open={entryDialogOpen}
+          onOpenChange={setEntryDialogOpen}
+          categories={selectedBookCategories}
+          initialType={entryType}
+          onEntryCreated={loadBooks}
+        />
+      )}
     </div>
   )
 }

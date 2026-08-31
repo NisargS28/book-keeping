@@ -9,7 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { getBook, getEntries, getCategories, setActiveBookId, deleteEntry, type Entry, type Category } from "@/lib/store"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { getBook, getBooks, getEntries, getCategories, createCategory, createEntry, setActiveBookId, deleteEntry, type Book, type Entry, type Category } from "@/lib/store"
 import {
   ArrowLeft,
   Plus,
@@ -17,7 +20,6 @@ import {
   Search,
   Edit2,
   Filter,
-  Eye,
   Clock,
   User,
   ChevronRight,
@@ -25,10 +27,17 @@ import {
   X,
   FileText,
   ShieldCheck,
+  EllipsisVertical,
+  ArrowRightLeft,
+  Copy,
+  Repeat2,
+  Trash2,
 } from "lucide-react"
 import { format } from "date-fns"
 import { EntryDialog } from "@/components/entry-dialog"
 import { EntryDetailSheet } from "@/components/entry-detail-sheet"
+
+type EntryAction = "move" | "copy" | "opposite"
 
 function LedgerContent({ bookId }: { bookId: string }) {
   const router = useRouter()
@@ -51,6 +60,13 @@ function LedgerContent({ bookId }: { bookId: string }) {
   
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>("")
+  const [availableBooks, setAvailableBooks] = useState<Book[]>([])
+  const [actionEntry, setActionEntry] = useState<Entry | null>(null)
+  const [pendingAction, setPendingAction] = useState<EntryAction | null>(null)
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false)
+  const [targetBookDialogOpen, setTargetBookDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [actionProcessing, setActionProcessing] = useState(false)
 
   const loadData = async () => {
     const { getCurrentUser } = await import("@/lib/auth")
@@ -65,11 +81,15 @@ function LedgerContent({ bookId }: { bookId: string }) {
     }
 
     setBook(bookData)
-    const bookEntries = await getEntries(bookId, user.id)
-    const bookCategories = await getCategories(bookId, user.id)
+    const [bookEntries, bookCategories, userBooks] = await Promise.all([
+      getEntries(bookId, user.id),
+      getCategories(bookId, user.id),
+      getBooks(user.id),
+    ])
     setEntries(bookEntries)
     setFilteredEntries(bookEntries)
     setCategories(bookCategories)
+    setAvailableBooks(userBooks)
   }
 
   useEffect(() => {
@@ -186,6 +206,95 @@ function LedgerContent({ bookId }: { bookId: string }) {
   const handleDeleteEntryFromSheet = async (entry: Entry) => {
     await deleteEntry(entry.id)
     await loadData()
+  }
+
+  const handleOpenActions = (entry: Entry) => {
+    setActionEntry(entry)
+    setActionsSheetOpen(true)
+  }
+
+  const handleActionSelect = (entry: Entry, action: EntryAction | "delete") => {
+    setActionEntry(entry)
+    setActionsSheetOpen(false)
+
+    if (action === "delete") {
+      setDeleteDialogOpen(true)
+      return
+    }
+
+    setPendingAction(action)
+    setTargetBookDialogOpen(true)
+  }
+
+  const handleTargetBookSelect = async (targetBook: Book) => {
+    if (!actionEntry || !pendingAction || !currentUserId) return
+
+    const sourceCategory = categories.find((category) => category.id === actionEntry.categoryId)
+    if (!sourceCategory) {
+      alert("The category for this entry could not be found.")
+      return
+    }
+
+    try {
+      setActionProcessing(true)
+      const targetCategories = await getCategories(targetBook.id, currentUserId)
+      let targetCategory = targetCategories.find((category) => category.name === sourceCategory.name)
+
+      if (!targetCategory) {
+        targetCategory = await createCategory({
+          bookId: targetBook.id,
+          name: sourceCategory.name,
+          color: sourceCategory.color || "#8b5cf6",
+        }, currentUserId)
+      }
+
+      await createEntry({
+        bookId: targetBook.id,
+        userId: currentUserId,
+        categoryId: targetCategory.id,
+        description: actionEntry.description,
+        people: actionEntry.people,
+        amount: actionEntry.amount,
+        type: pendingAction === "opposite"
+          ? actionEntry.type === "income" ? "expense" : "income"
+          : actionEntry.type,
+        paymentMode: actionEntry.paymentMode,
+        date: actionEntry.date,
+        occurredAt: actionEntry.occurredAt,
+        notes: actionEntry.notes,
+      })
+
+      if (pendingAction === "move") {
+        await deleteEntry(actionEntry.id)
+      }
+
+      setTargetBookDialogOpen(false)
+      setActionEntry(null)
+      setPendingAction(null)
+      await loadData()
+    } catch (error) {
+      console.error("Failed to process entry action:", error)
+      alert("Unable to complete this action. Please try again.")
+    } finally {
+      setActionProcessing(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!actionEntry) return
+
+    try {
+      setActionProcessing(true)
+      await handleDeleteEntryFromSheet(actionEntry)
+      setDeleteDialogOpen(false)
+      setDetailSheetOpen(false)
+      setActionEntry(null)
+    } catch (error) {
+      console.error("Failed to delete entry:", error)
+      alert("Unable to delete this entry. Please try again.")
+    } finally {
+      setActionProcessing(false)
+    }
   }
 
   const handleOpenReports = () => {
@@ -862,14 +971,33 @@ function LedgerContent({ bookId }: { bookId: string }) {
                               </TableCell>
                               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex justify-end gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title="View details"
-                                    onClick={() => handleViewDetail(entry)}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" title="Entry actions">
+                                        <EllipsisVertical className="h-4 w-4" />
+                                        <span className="sr-only">Entry actions</span>
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      <DropdownMenuItem onClick={() => handleActionSelect(entry, "move")}>
+                                        <ArrowRightLeft />
+                                        Move Entry
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleActionSelect(entry, "copy")}>
+                                        <Copy />
+                                        Copy Entry
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleActionSelect(entry, "opposite")}>
+                                        <Repeat2 />
+                                        Copy Opposite Entry
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem variant="destructive" onClick={() => handleActionSelect(entry, "delete")}>
+                                        <Trash2 />
+                                        Delete Entry
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -900,6 +1028,79 @@ function LedgerContent({ bookId }: { bookId: string }) {
           </div>
         </main>
 
+      <Sheet open={actionsSheetOpen} onOpenChange={setActionsSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl border-t border-border/80 px-5 pb-8 pt-5 sm:max-w-lg sm:mx-auto">
+          <SheetHeader className="border-b border-border/60 pb-4 text-left">
+            <SheetTitle>Actions</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-1 pt-3">
+            <Button variant="ghost" className="h-auto w-full justify-start gap-4 px-3 py-3 text-left" onClick={() => actionEntry && handleActionSelect(actionEntry, "move")}>
+              <ArrowRightLeft className="h-5 w-5 text-primary" />
+              <span><span className="block font-semibold">Move Entry</span><span className="block pt-0.5 text-xs font-normal text-muted-foreground">Move this entry to another book.</span></span>
+            </Button>
+            <Button variant="ghost" className="h-auto w-full justify-start gap-4 px-3 py-3 text-left" onClick={() => actionEntry && handleActionSelect(actionEntry, "copy")}>
+              <Copy className="h-5 w-5 text-primary" />
+              <span><span className="block font-semibold">Copy Entry</span><span className="block pt-0.5 text-xs font-normal text-muted-foreground">Keep this entry in both books.</span></span>
+            </Button>
+            <Button variant="ghost" className="h-auto w-full justify-start gap-4 px-3 py-3 text-left" onClick={() => actionEntry && handleActionSelect(actionEntry, "opposite")}>
+              <Repeat2 className="h-5 w-5 text-primary" />
+              <span><span className="block font-semibold">Copy Opposite Entry</span><span className="block pt-0.5 text-xs font-normal text-muted-foreground">Copy it with Cash In and Cash Out reversed.</span></span>
+            </Button>
+            <div className="my-2 border-t border-border/60" />
+            <Button variant="ghost" className="h-auto w-full justify-start gap-4 px-3 py-3 text-left text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => actionEntry && handleActionSelect(actionEntry, "delete")}>
+              <Trash2 className="h-5 w-5" />
+              <span><span className="block font-semibold">Delete Entry</span><span className="block pt-0.5 text-xs font-normal text-destructive/80">Permanently delete this entry.</span></span>
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={targetBookDialogOpen} onOpenChange={setTargetBookDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select destination book</DialogTitle>
+            <DialogDescription>
+              Choose where to {pendingAction === "move" ? "move" : "copy"} this entry.
+            </DialogDescription>
+          </DialogHeader>
+          {availableBooks.filter((candidate) => candidate.id !== bookId).length === 0 ? (
+            <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+              Create another book before moving or copying an entry.
+            </p>
+          ) : (
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+              {availableBooks.filter((candidate) => candidate.id !== bookId).map((candidate) => (
+                <Button
+                  key={candidate.id}
+                  type="button"
+                  variant="outline"
+                  className="h-auto w-full justify-between gap-4 px-4 py-3 text-left"
+                  onClick={() => handleTargetBookSelect(candidate)}
+                  disabled={actionProcessing}
+                >
+                  <span className="min-w-0"><span className="block truncate font-semibold">{candidate.name}</span>{candidate.description && <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">{candidate.description}</span>}</span>
+                  <span className={`shrink-0 text-sm font-bold ${candidate.balance >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(candidate.balance)}</span>
+                </Button>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete the entry and cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={actionProcessing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {actionProcessing ? "Deleting..." : "Delete Entry"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Entry Create / Edit Dialog */}
       <EntryDialog
@@ -920,7 +1121,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
         entry={selectedEntryForDetail}
         categories={categories}
         onEdit={handleEdit}
-        onDelete={handleDeleteEntryFromSheet}
+        onMoreActions={handleOpenActions}
       />
     </div>
   )
