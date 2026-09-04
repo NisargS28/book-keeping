@@ -184,29 +184,55 @@ function BooksContent() {
       <AppHeader activeBookId={null} />
         <main className="flex-1 p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-7 md:pb-[calc(7rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-6xl space-y-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">Your workspace</p>
-                <h1 className="text-3xl font-bold tracking-tight md:text-4xl">My books</h1>
-                <p className="mt-2 text-sm md:text-base text-muted-foreground">Keep separate ledgers for everything that matters.</p>
-              </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Button
-                variant="outline"
-                className="h-11 gap-2 border-border/80 hover:bg-muted font-semibold shadow-sm"
-                onClick={() => router.push("/dashboard")}
-              >
-                <LayoutDashboard className="h-4 w-4 text-primary" />
-                Analytics Dashboard
-              </Button>
-
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="h-11 w-full gap-2 sm:w-auto font-semibold shadow-sm">
-                    <Plus className="h-4 w-4" />
-                    Add New Book
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-primary">Your workspace</p>
+                      <h1 className="text-3xl font-bold tracking-tight md:text-4xl">My books</h1>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2 sm:hidden">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-11 gap-1.5 px-3 font-semibold"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        <LayoutDashboard className="h-4 w-4 text-primary" />
+                        <span>Analytics</span>
+                      </Button>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          aria-label="Add new book"
+                          title="Add new book"
+                          className="h-11 w-11 shrink-0 font-semibold shadow-sm"
+                        >
+                          <Plus className="h-5 w-5" />
+                        </Button>
+                      </DialogTrigger>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm md:text-base text-muted-foreground">Keep separate ledgers for everything that matters.</p>
+                </div>
+                <div className="hidden items-center gap-3 sm:flex">
+                  <Button
+                    variant="outline"
+                    className="h-11 gap-2 border-border/80 font-semibold shadow-sm hover:bg-muted"
+                    onClick={() => router.push("/dashboard")}
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-primary" />
+                    Analytics Dashboard
                   </Button>
-                </DialogTrigger>
+                  <DialogTrigger asChild>
+                    <Button className="h-11 gap-2 font-semibold shadow-sm">
+                      <Plus className="h-4 w-4" />
+                      Add New Book
+                    </Button>
+                  </DialogTrigger>
+                </div>
+              </div>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create New Book</DialogTitle>
@@ -249,9 +275,7 @@ function BooksContent() {
                     </Button>
                   </div>
                 </DialogContent>
-              </Dialog>
-            </div>
-          </div>
+            </Dialog>
 
             {books.length === 0 ? (
               <Card className="border-dashed">
