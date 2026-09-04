@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useEffect, useState, useMemo } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
@@ -67,6 +68,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
   const [targetBookDialogOpen, setTargetBookDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [actionProcessing, setActionProcessing] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const loadData = async () => {
     const { getCurrentUser } = await import("@/lib/auth")
@@ -93,6 +95,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
   }
 
   useEffect(() => {
+    setMounted(true)
     loadData()
   }, [bookId])
 
@@ -370,7 +373,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
         {/* Top Header */}
         <div className="sticky top-0 z-30 border-b border-border/80 bg-card/90 backdrop-blur-xl">
           <div className="container flex h-auto min-h-16 flex-col gap-3 px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between md:px-7 md:py-0">
@@ -410,33 +413,11 @@ function LedgerContent({ bookId }: { bookId: string }) {
                 <FileText className="h-4 w-4 text-primary" />
                 Reports
               </Button>
-              <Button onClick={handleAddCashIn} className="gap-2 bg-success hover:bg-success/90 text-sm">
-                <Plus className="h-4 w-4" />
-                Cash In
-              </Button>
-              <Button onClick={handleAddCashOut} variant="destructive" className="gap-2 text-sm">
-                <Minus className="h-4 w-4" />
-                Cash Out
-              </Button>
             </div>
           </div>
         </div>
 
-        {/* Mobile sticky buttons at bottom */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl md:hidden">
-          <div className="flex items-center gap-2">
-            <Button onClick={handleAddCashIn} className="flex-1 gap-2 bg-success hover:bg-success/90 font-semibold h-11">
-              <Plus className="h-4 w-4" />
-              Cash In
-            </Button>
-            <Button onClick={handleAddCashOut} variant="destructive" className="flex-1 gap-2 font-semibold h-11">
-              <Minus className="h-4 w-4" />
-              Cash Out
-            </Button>
-          </div>
-        </div>
-
-        <main className="flex-1 overflow-auto p-4 pb-28 md:p-7 md:pb-8">
+        <main className="flex-1 p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-7 md:pb-[calc(7rem+env(safe-area-inset-bottom))]">
           <div className="container mx-auto max-w-7xl space-y-5 md:space-y-7">
             {/* Summary Bar - Desktop */}
             <div className="hidden md:grid gap-4 md:grid-cols-3">
@@ -1101,6 +1082,22 @@ function LedgerContent({ bookId }: { bookId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {mounted && createPortal(
+        <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-center gap-2">
+            <Button onClick={handleAddCashIn} className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90">
+              <Plus className="h-4 w-4" />
+              Cash In
+            </Button>
+            <Button onClick={handleAddCashOut} variant="destructive" className="h-11 flex-1 gap-2 font-semibold">
+              <Minus className="h-4 w-4" />
+              Cash Out
+            </Button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* Entry Create / Edit Dialog */}
       <EntryDialog
