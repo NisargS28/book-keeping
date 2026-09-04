@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
@@ -53,6 +54,7 @@ function BooksContent() {
   const [selectingBook, setSelectingBook] = useState(false)
   const [currentUserId, setCurrentUserId] = useState("")
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   const loadBooks = async () => {
     const user = await getCurrentUser()
@@ -65,6 +67,7 @@ function BooksContent() {
   }
 
   useEffect(() => {
+    setMounted(true)
     loadBooks()
   }, [])
 
@@ -177,9 +180,9 @@ function BooksContent() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <AppHeader activeBookId={null} />
-        <main className="flex-1 overflow-auto p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-7 md:pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <main className="flex-1 p-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:p-7 md:pb-[calc(7rem+env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-6xl space-y-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -354,25 +357,28 @@ function BooksContent() {
           </div>
         </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center gap-2">
-          <Button
-            onClick={() => handleCashAction("income")}
-            className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90"
-          >
-            <Plus className="h-4 w-4" />
-            Cash In
-          </Button>
-          <Button
-            onClick={() => handleCashAction("expense")}
-            variant="destructive"
-            className="h-11 flex-1 gap-2 font-semibold"
-          >
-            <Minus className="h-4 w-4" />
-            Cash Out
-          </Button>
-        </div>
-      </div>
+      {mounted && createPortal(
+        <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-center gap-2">
+            <Button
+              onClick={() => handleCashAction("income")}
+              className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90"
+            >
+              <Plus className="h-4 w-4" />
+              Cash In
+            </Button>
+            <Button
+              onClick={() => handleCashAction("expense")}
+              variant="destructive"
+              className="h-11 flex-1 gap-2 font-semibold"
+            >
+              <Minus className="h-4 w-4" />
+              Cash Out
+            </Button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       <Dialog open={bookPickerOpen} onOpenChange={setBookPickerOpen}>
         <DialogContent>
