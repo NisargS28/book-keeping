@@ -325,7 +325,7 @@ function SettingsContent() {
     if (!newRecoverySecret) return
     const blob = new Blob(
       [
-        `CashBook Zero-Knowledge Encryption Recovery Secret\n` +
+        `Ledgerly Zero-Knowledge Encryption Recovery Secret\n` +
           `==================================================\n\n` +
           `Save this in a secure location (e.g. password manager, safe offline storage).\n` +
           `Do NOT share this secret with anyone. Our servers do not have this key.\n\n` +
@@ -336,7 +336,7 @@ function SettingsContent() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "cashbook-recovery-secret.txt"
+    a.download = "ledgerly-recovery-secret.txt"
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -937,7 +937,7 @@ function SettingsContent() {
               <Card>
                 <CardHeader>
                   <CardTitle>Appearance & Theme</CardTitle>
-                  <CardDescription>Customize how CashBook looks on your device</CardDescription>
+                  <CardDescription>Customize how Ledgerly looks on your device</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">

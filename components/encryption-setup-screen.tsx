@@ -10,7 +10,7 @@
  *   1. User enters + confirms a passphrase.
  *   2. setupEncryptionOnly() generates the data key, wraps it, stores in Supabase.
  *   3. A 64-char hex recovery secret is returned and displayed.
- *   4. User must copy/download and confirm before clicking "Continue to CashBook".
+ *   4. User must copy/download and confirm before clicking "Continue to Ledgerly".
  *   5. completeUnlock() transitions the app to the unlocked state.
  *
  * The recovery secret is shown exactly once and is never stored server-side.
@@ -84,7 +84,7 @@ export function EncryptionSetupScreen() {
     if (!recoverySecret) return
     const blob = new Blob(
       [
-        `CashBook Zero-Knowledge Encryption Recovery Secret\n` +
+        `Ledgerly Zero-Knowledge Encryption Recovery Secret\n` +
           `==================================================\n\n` +
           `Save this in a secure location (e.g. password manager, safe offline storage).\n` +
           `Do NOT share this secret with anyone. Our servers do not have this key.\n\n` +
@@ -95,7 +95,7 @@ export function EncryptionSetupScreen() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "cashbook-recovery-secret.txt"
+    a.download = "ledgerly-recovery-secret.txt"
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -174,7 +174,7 @@ export function EncryptionSetupScreen() {
                 completeUnlock()
               }}
             >
-              <span>Continue to CashBook</span>
+              <span>Continue to Ledgerly</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </CardContent>

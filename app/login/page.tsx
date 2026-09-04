@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { login } from "@/lib/auth"
-import { ArrowUpRight, BookA as Book2, Eye, EyeOff, ShieldCheck } from "lucide-react"
+import { ArrowUpRight, Eye, EyeOff, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -19,13 +19,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [passwordReset, setPasswordReset] = useState(false)
+
+  useEffect(() => {
+    setPasswordReset(new URLSearchParams(window.location.search).get("passwordReset") === "success")
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
     try {
-      await login(email, password)
+      const { error: loginError } = await login(email, password)
+      if (loginError) {
+        throw loginError
+      }
       router.push("/books")
     } catch (err: any) {
       setError(err?.message || "Failed to sign in")
@@ -37,8 +45,8 @@ export default function LoginPage() {
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-sidebar p-12 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
         <div className="relative z-10 flex items-center gap-3 text-xl font-bold">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground"><Book2 className="h-5 w-5" /></span>
-          CashBook
+          <img src="/Ledgerly.png" alt="Ledgerly" className="h-10 w-10 rounded-xl object-cover shadow-sm" />
+          Ledgerly
         </div>
         <div className="relative z-10 max-w-md">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-sidebar-primary">A clearer view of your money</p>
@@ -53,9 +61,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-0 bg-card/90 shadow-xl shadow-slate-950/10">
         <CardHeader className="space-y-3 px-7 pt-8 text-center sm:px-9">
           <div className="flex justify-center lg:hidden">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
-              <Book2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src="/Ledgerly.png" alt="Ledgerly" className="h-12 w-12 rounded-2xl object-cover shadow-lg shadow-primary/20" />
           </div>
           <CardTitle className="text-2xl tracking-tight">Welcome back</CardTitle>
           <CardDescription>Sign in to manage your finances</CardDescription>
@@ -74,7 +80,12 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/forgot-password" className="text-xs font-semibold text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -100,6 +111,11 @@ export default function LoginPage() {
                 </Button>
               </div>
             </div>
+            {passwordReset && (
+              <div className="rounded-xl border border-success/20 bg-success/10 px-3 py-2.5 text-sm text-success">
+                Your password has been updated. Please sign in.
+              </div>
+            )}
             {error && <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">{error}</div>}
             <Button type="submit" className="h-11 w-full" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}

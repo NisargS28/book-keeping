@@ -113,6 +113,41 @@ export async function login(
 }
 
 /**
+ * Send a password-reset email for a Supabase Auth account.
+ */
+export async function requestPasswordReset(
+  email: string,
+  redirectTo: string,
+): Promise<{ error?: any }> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    })
+
+    if (error) throw error
+    return {}
+  } catch (error: any) {
+    console.error('Password reset request failed:', error)
+    return { error }
+  }
+}
+
+/**
+ * Update the password for the active Supabase recovery session.
+ */
+export async function updatePassword(password: string): Promise<{ error?: any }> {
+  try {
+    const { error } = await supabase.auth.updateUser({ password })
+
+    if (error) throw error
+    return {}
+  } catch (error: any) {
+    console.error('Password update failed:', error)
+    return { error }
+  }
+}
+
+/**
  * Log out the current user
  */
 export async function logout(): Promise<void> {

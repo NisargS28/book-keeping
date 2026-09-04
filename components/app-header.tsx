@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  BookA as Book2,
   ChevronDown,
   LogOut,
   User,
@@ -81,10 +80,12 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
             href="/books"
             className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <Book2 className="h-5 w-5" />
-            </span>
-            <span className="text-lg font-bold tracking-tight md:text-xl">CashBook</span>
+            <img
+              src="/Ledgerly.png"
+              alt="Ledgerly"
+              className="h-10 w-10 rounded-xl object-cover shadow-sm"
+            />
+            <span className="text-lg font-bold tracking-tight md:text-xl">Ledgerly</span>
           </Link>
 
           {activeBookName && (
@@ -111,7 +112,6 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>End-to-End Encrypted</span>
           </div>
-
 
           {/* Profile & Settings Dropdown */}
           <DropdownMenu>

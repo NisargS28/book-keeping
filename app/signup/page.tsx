@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { signup } from "@/lib/auth"
-import { ArrowUpRight, BookA as Book2, Eye, EyeOff, ShieldCheck } from "lucide-react"
+import { ArrowUpRight, Eye, EyeOff, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 
 export default function SignupPage() {
@@ -45,8 +45,8 @@ export default function SignupPage() {
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-sidebar p-12 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
         <div className="relative z-10 flex items-center gap-3 text-xl font-bold">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground"><Book2 className="h-5 w-5" /></span>
-          CashBook
+          <img src="/Ledgerly.png" alt="Ledgerly" className="h-10 w-10 rounded-xl object-cover shadow-sm" />
+          Ledgerly
         </div>
         <div className="relative z-10 max-w-md">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.16em] text-sidebar-primary">Start with clarity</p>
@@ -61,12 +61,10 @@ export default function SignupPage() {
       <Card className="w-full max-w-md border-0 bg-card/90 shadow-xl shadow-slate-950/10">
         <CardHeader className="space-y-3 px-7 pt-8 text-center sm:px-9">
           <div className="flex justify-center lg:hidden">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
-              <Book2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src="/Ledgerly.png" alt="Ledgerly" className="h-12 w-12 rounded-2xl object-cover shadow-lg shadow-primary/20" />
           </div>
           <CardTitle className="text-2xl tracking-tight">Create your account</CardTitle>
-          <CardDescription>Get started with CashBook today</CardDescription>
+          <CardDescription>Get started with Ledgerly today</CardDescription>
         </CardHeader>
         <CardContent className="px-7 pb-8 sm:px-9">
           <div className="mb-5 rounded-xl border border-primary/15 bg-primary/5 p-3.5 text-sm text-primary">

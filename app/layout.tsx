@@ -5,14 +5,14 @@ import { NavigationProgress } from "@/components/navigation-progress"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "CashBook - Professional Bookkeeping",
+  title: "Ledgerly - Professional Bookkeeping",
   description: "Manage multiple books, track transactions, and analyze your finances",
   generator: "v0.app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "CashBook",
+    title: "Ledgerly",
   },
   formatDetection: {
     telephone: false,
@@ -20,19 +20,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/ledgerly-icon-32x32.png",
         media: "(prefers-color-scheme: light)",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/ledgerly-icon-32x32.png",
         media: "(prefers-color-scheme: dark)",
       },
       {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/ledgerly-icon-192x192.png",
+        type: "image/png",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/ledgerly-apple-touch-icon.png",
   },
 }
 
@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#8b5cf6",
+  themeColor: "#0879c9",
 }
 
 export default function RootLayout({
