@@ -1083,7 +1083,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {mounted && createPortal(
+      {mounted && !entryDialogOpen && createPortal(
         <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
           <div className="mx-auto flex max-w-md items-center gap-2">
             <Button onClick={handleAddCashIn} className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90">
