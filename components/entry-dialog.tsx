@@ -209,6 +209,17 @@ export function EntryDialog({ bookId, userId, open, onOpenChange, categories, on
           </div>
 
           <div className="space-y-2">
+            <label className="text-sm font-semibold">Amount</label>
+            <Input
+              type="number"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              step="0.01"
+            />
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-semibold">Description</label>
             <Input
               placeholder="e.g., Monthly salary"
@@ -223,17 +234,6 @@ export function EntryDialog({ bookId, userId, open, onOpenChange, categories, on
               placeholder="e.g., Rahul, Client name"
               value={people}
               onChange={(e) => setPeople(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Amount</label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              step="0.01"
             />
           </div>
 

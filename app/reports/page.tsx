@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth-guard"
 import { AppHeader } from "@/components/app-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { getCurrentUser } from "@/lib/auth"
@@ -15,6 +16,22 @@ import { Download, FileText, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
 
 type ReportType = "all" | "day-wise" | "category-wise"
+type DatePeriod = "all" | "custom"
+
+function dateFromCalendarString(value: string) {
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function getEntryCalendarDate(entry: Entry) {
+  const value = entry.occurredAt || entry.date
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return dateFromCalendarString(value)
+  }
+
+  return new Date(value)
+}
 
 function ReportsContent() {
   const router = useRouter()
@@ -25,7 +42,11 @@ function ReportsContent() {
   const [books, setBooks] = useState<Book[]>([])
   const [selectedBookId, setSelectedBookId] = useState<string>("")
   const [reportType, setReportType] = useState<ReportType>("all")
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>("all")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
   const [generating, setGenerating] = useState(false)
+  const [dataLoading, setDataLoading] = useState(false)
   const [entries, setEntries] = useState<Entry[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [userId, setUserId] = useState<string>("")
@@ -60,16 +81,58 @@ function ReportsContent() {
   }, [router, bookIdParam])
 
   useEffect(() => {
+    let cancelled = false
+
     const loadData = async () => {
       if (selectedBookId && userId) {
-        const bookEntries = await getEntries(selectedBookId, userId)
-        const bookCategories = await getCategories(selectedBookId, userId)
-        setEntries(bookEntries)
-        setCategories(bookCategories)
+        setDataLoading(true)
+        setEntries([])
+        setCategories([])
+
+        try {
+          const [bookEntries, bookCategories] = await Promise.all([
+            getEntries(selectedBookId, userId),
+            getCategories(selectedBookId, userId),
+          ])
+
+          if (!cancelled) {
+            setEntries(bookEntries)
+            setCategories(bookCategories)
+          }
+        } finally {
+          if (!cancelled) setDataLoading(false)
+        }
+      } else {
+        setEntries([])
+        setCategories([])
+        setDataLoading(false)
       }
     }
+
     loadData()
+    return () => {
+      cancelled = true
+    }
   }, [selectedBookId, userId])
+
+  const isCustomRange = datePeriod === "custom"
+  const isRangeComplete = Boolean(fromDate && toDate)
+  const isRangePartiallyComplete = isCustomRange && Boolean(fromDate) !== Boolean(toDate)
+  const isDateRangeInvalid = isCustomRange && isRangeComplete && fromDate > toDate
+  const isDateRangeReady = !isCustomRange || (isRangeComplete && !isDateRangeInvalid)
+  const filteredEntries = isDateRangeReady
+    ? entries.filter((entry) => {
+        if (!isCustomRange) return true
+        return format(getEntryCalendarDate(entry), "yyyy-MM-dd") >= fromDate
+          && format(getEntryCalendarDate(entry), "yyyy-MM-dd") <= toDate
+      })
+    : []
+  const selectedPeriodLabel = !isCustomRange
+    ? "All time"
+    : isRangeComplete
+      ? `${format(dateFromCalendarString(fromDate), "MMM dd, yyyy")} – ${format(dateFromCalendarString(toDate), "MMM dd, yyyy")}`
+      : "Select a date range"
+  const canGenerate = Boolean(selectedBookId) && !generating && !dataLoading && isDateRangeReady && filteredEntries.length > 0
 
   const generatePDF = () => {
     setGenerating(true)
@@ -161,11 +224,12 @@ function ReportsContent() {
             <h1>${selectedBook.name}</h1>
             <p>Report Generated on ${format(new Date(), "MMMM dd, yyyy HH:mm")}</p>
             <p>Report Type: ${reportType === "all" ? "All Entries" : reportType === "day-wise" ? "Day-wise Summary" : "Category-wise Summary"}</p>
+            <p>Period: ${selectedPeriodLabel}</p>
           </div>
       `
 
-      const totalIncome = entries.filter((e) => e.type === "income").reduce((sum, e) => sum + e.amount, 0)
-      const totalExpense = entries.filter((e) => e.type === "expense").reduce((sum, e) => sum + e.amount, 0)
+      const totalIncome = filteredEntries.filter((e) => e.type === "income").reduce((sum, e) => sum + e.amount, 0)
+      const totalExpense = filteredEntries.filter((e) => e.type === "expense").reduce((sum, e) => sum + e.amount, 0)
       const balance = totalIncome - totalExpense
 
       content += `
@@ -202,9 +266,9 @@ function ReportsContent() {
             </thead>
             <tbody>
         `
-        entries.forEach((entry) => {
+        filteredEntries.forEach((entry) => {
           const category = categories.find((c) => c.id === entry.categoryId)
-          const entryDate = new Date(entry.occurredAt || entry.date)
+          const entryDate = getEntryCalendarDate(entry)
           content += `
               <tr>
                 <td>${format(entryDate, "MMM dd, yyyy HH:mm")}</td>
@@ -222,8 +286,8 @@ function ReportsContent() {
           </table>
         `
       } else if (reportType === "day-wise") {
-        const entriesByDate = entries.reduce((acc, entry) => {
-          const entryDate = new Date(entry.occurredAt || entry.date)
+        const entriesByDate = filteredEntries.reduce((acc, entry) => {
+          const entryDate = getEntryCalendarDate(entry)
           const dateKey = format(entryDate, "yyyy-MM-dd")
           if (!acc[dateKey]) acc[dateKey] = []
           acc[dateKey].push(entry)
@@ -269,7 +333,7 @@ function ReportsContent() {
 
             dayEntries.forEach((entry) => {
               const category = categories.find((c) => c.id === entry.categoryId)
-              const entryDate = new Date(entry.occurredAt || entry.date)
+              const entryDate = getEntryCalendarDate(entry)
               content += `
                 <tr>
                   <td>${format(entryDate, "HH:mm")}</td>
@@ -288,7 +352,7 @@ function ReportsContent() {
         `
       } else if (reportType === "category-wise") {
         const entriesByCategory = categories.map((category) => {
-          const categoryEntries = entries.filter((e) => e.categoryId === category.id)
+          const categoryEntries = filteredEntries.filter((e) => e.categoryId === category.id)
           const income = categoryEntries.filter((e) => e.type === "income").reduce((sum, e) => sum + e.amount, 0)
           const expense = categoryEntries.filter((e) => e.type === "expense").reduce((sum, e) => sum + e.amount, 0)
           return {
@@ -330,7 +394,7 @@ function ReportsContent() {
           `
 
           catEntries.forEach((entry) => {
-            const entryDate = new Date(entry.occurredAt || entry.date)
+            const entryDate = getEntryCalendarDate(entry)
             content += `
               <tr>
                 <td>${format(entryDate, "MMM dd, yyyy HH:mm")}</td>
@@ -444,6 +508,50 @@ function ReportsContent() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="datePeriod">Date Period</Label>
+                <Select value={datePeriod} onValueChange={(value) => setDatePeriod(value as DatePeriod)}>
+                  <SelectTrigger id="datePeriod">
+                    <SelectValue placeholder="Select a date period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All time</SelectItem>
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isCustomRange && (
+                <div className="space-y-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="fromDate">From</Label>
+                      <Input
+                        id="fromDate"
+                        type="date"
+                        value={fromDate}
+                        onChange={(event) => setFromDate(event.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="toDate">To</Label>
+                      <Input
+                        id="toDate"
+                        type="date"
+                        value={toDate}
+                        onChange={(event) => setToDate(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {isDateRangeInvalid && (
+                    <p className="text-sm text-destructive">The From date must be on or before the To date.</p>
+                  )}
+                  {isRangePartiallyComplete && (
+                    <p className="text-sm text-destructive">Select both From and To dates to generate a report.</p>
+                  )}
+                </div>
+              )}
+
               {selectedBook && (
                 <div className="rounded-xl border border-border/80 bg-muted/50 p-4 space-y-2">
                   <h3 className="font-semibold text-sm">Preview Information</h3>
@@ -454,7 +562,7 @@ function ReportsContent() {
                     </div>
                     <div>
                       <span className="text-muted-foreground block mb-0.5">Total Entries</span>
-                      <p className="font-semibold text-foreground">{entries.length}</p>
+                      <p className="font-semibold text-foreground">{filteredEntries.length}</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground block mb-0.5">Report Type</span>
@@ -470,13 +578,23 @@ function ReportsContent() {
                       <span className="text-muted-foreground block mb-0.5">Categories</span>
                       <p className="font-semibold text-foreground">{categories.length}</p>
                     </div>
+                    <div className="col-span-2 sm:col-span-4">
+                      <span className="text-muted-foreground block mb-0.5">Period</span>
+                      <p className="font-semibold text-foreground">{selectedPeriodLabel}</p>
+                    </div>
                   </div>
                 </div>
               )}
 
+              {isDateRangeReady && !dataLoading && filteredEntries.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {isCustomRange ? "No entries in this date range." : "No entries in this book."}
+                </p>
+              )}
+
               <Button
                 onClick={generatePDF}
-                disabled={!selectedBookId || generating}
+                disabled={!canGenerate}
                 className="w-full h-11 gap-2 font-semibold"
                 size="lg"
               >
