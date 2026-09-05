@@ -117,6 +117,21 @@ export default function LandingPage() {
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
+  const [isRedirectingFromPwa, setIsRedirectingFromPwa] = useState(false)
+
+  useEffect(() => {
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)")
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean }
+    const isStandalonePwa = displayModeQuery.matches || navigatorWithStandalone.standalone === true
+    const isMobileDevice =
+      /android|iphone|ipad|ipod|mobile/i.test(window.navigator.userAgent) ||
+      (window.navigator.maxTouchPoints > 1 && window.matchMedia("(pointer: coarse)").matches)
+
+    if (isStandalonePwa && isMobileDevice) {
+      setIsRedirectingFromPwa(true)
+      router.replace("/books")
+    }
+  }, [router])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -220,6 +235,10 @@ export default function LandingPage() {
     } finally {
       setInstallPrompt(null)
     }
+  }
+
+  if (isRedirectingFromPwa) {
+    return null
   }
 
   return (
