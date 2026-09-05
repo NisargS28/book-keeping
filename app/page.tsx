@@ -223,20 +223,20 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-foreground">
       {/* -------------------- 1. NAVIGATION BAR -------------------- */}
       <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 sm:h-16 sm:px-6 lg:px-8">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
               <img
                 src="/Ledgerly.png"
                 alt="Ledgerly"
-                className="h-10 w-10 rounded-xl object-cover shadow-sm ring-1 ring-border/50"
+                className="h-9 w-9 rounded-xl object-cover shadow-sm ring-1 ring-border/50 sm:h-10 sm:w-10"
               />
               <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight">Ledgerly</span>
+                <span className="text-lg font-bold tracking-tight sm:text-xl">Ledgerly</span>
                 <span className="text-[10px] font-semibold text-primary uppercase tracking-wider -mt-1 hidden sm:inline">
                   Zero-Knowledge Bookkeeping
                 </span>
@@ -285,7 +285,7 @@ export default function LandingPage() {
             {/* Demo CTA Button */}
             <Link
               href="/demo"
-              className="relative inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/20 hover:border-primary transition-all shadow-xs"
+              className="relative hidden items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:border-primary transition-all shadow-xs sm:inline-flex sm:text-sm"
             >
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live Demo</span>
@@ -309,7 +309,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all hover:shadow-md"
+                  className="hidden items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all hover:shadow-md sm:inline-flex sm:px-4 sm:py-2 sm:text-sm"
                 >
                   <span>Start Free</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -412,22 +412,23 @@ export default function LandingPage() {
       </header>
 
       {/* -------------------- 2. HERO SECTION -------------------- */}
-      <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28">
+      <section className="relative overflow-hidden pb-14 pt-8 sm:pb-20 sm:pt-12 md:pb-28 md:pt-20">
         {/* Subtle Ambient Radial Glows */}
         <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full bg-primary/15 blur-[120px] -z-10" />
         <div className="pointer-events-none absolute top-40 right-10 w-96 h-96 rounded-full bg-cyan-500/10 blur-[100px] -z-10" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary mb-6 shadow-2xs hover:bg-primary/15 transition-colors">
+          <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary shadow-2xs transition-colors hover:bg-primary/15 sm:mb-6 sm:px-3.5 sm:text-xs">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Zero-Knowledge Client-Side AES-256 Encryption</span>
+            <span className="sm:hidden">Private AES-256 encryption</span>
+            <span className="hidden sm:inline">Zero-Knowledge Client-Side AES-256 Encryption</span>
             <span className="hidden sm:inline text-primary/60">•</span>
             <span className="hidden sm:inline text-muted-foreground font-normal">Multi-Book Architecture</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground max-w-5xl mx-auto leading-[1.08]">
+          <h1 className="mx-auto max-w-5xl text-[2.1rem] font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
             Financial clarity without compromising your{" "}
             <span className="bg-gradient-to-r from-primary via-cyan-600 to-teal-500 bg-clip-text text-transparent">
               privacy.
@@ -435,13 +436,13 @@ export default function LandingPage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-6 max-w-3xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed">
+          <p className="mx-auto mt-4 max-w-3xl text-[15px] leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg md:text-xl">
             Manage multiple business & personal books, track real-time cash flow, collaborate effortlessly,
             and log transactions on the go with zero delay. Your financial data is encrypted in your browser before it ever reaches the cloud.
           </p>
 
           {/* Hero CTAs */}
-          <div className="mt-8 sm:mt-10 flex max-w-2xl flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4 mx-auto">
+          <div className="mx-auto mt-7 flex max-w-2xl flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link
               href="/signup"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm sm:text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 transition-all"
@@ -489,10 +490,10 @@ export default function LandingPage() {
         </div>
 
         {/* -------------------- 3. REAL PRODUCT SCREENSHOT SHOWCASE -------------------- */}
-        <div id="preview" className="mt-14 sm:mt-16 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div id="preview" className="mx-auto mt-10 max-w-6xl px-3 sm:mt-16 sm:px-6 lg:px-8">
           {/* Interactive Screenshot Selector Tabs */}
-          <div className="flex items-center justify-center mb-6">
-            <div className="inline-flex rounded-xl border border-border/80 bg-card/90 backdrop-blur-md p-1.5 shadow-md max-w-full overflow-x-auto scrollbar-none">
+          <div className="mb-4 flex items-center justify-start sm:mb-6 sm:justify-center">
+            <div className="flex w-full max-w-full overflow-x-auto rounded-xl border border-border/80 bg-card/90 p-1.5 shadow-md backdrop-blur-md scrollbar-none sm:w-auto">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id
                 return (
@@ -517,9 +518,9 @@ export default function LandingPage() {
           </div>
 
           {/* Browser Window Frame with Real Application Screenshot */}
-          <div className="relative rounded-2xl border border-border/80 bg-card shadow-2xl overflow-hidden transition-all duration-300 ring-1 ring-black/5 dark:ring-white/10">
+          <div className="relative overflow-hidden rounded-xl border border-border/80 bg-card shadow-xl ring-1 ring-black/5 transition-all duration-300 dark:ring-white/10 sm:rounded-2xl sm:shadow-2xl">
             {/* Top Browser Bar */}
-            <div className="flex items-center justify-between border-b border-border/70 bg-muted/60 px-4 py-3 text-xs">
+            <div className="flex items-center justify-between border-b border-border/70 bg-muted/60 px-3 py-2.5 text-xs sm:px-4 sm:py-3">
               <div className="flex items-center gap-2">
                 <span className="h-3 w-3 rounded-full bg-rose-400/90" />
                 <span className="h-3 w-3 rounded-full bg-amber-400/90" />
@@ -532,11 +533,11 @@ export default function LandingPage() {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="h-3 w-3" />
-                  Real App Screenshot
+                  <span className="hidden sm:inline">Real App Screenshot</span>
                 </span>
                 <Link
                   href={currentTabConfig.demoUrl}
-                  className="inline-flex items-center gap-1 font-semibold text-primary hover:underline text-xs ml-2"
+                  className="ml-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline sm:ml-2 sm:text-xs"
                 >
                   Test in Demo
                   <ArrowUpRight className="h-3 w-3" />
@@ -545,7 +546,7 @@ export default function LandingPage() {
             </div>
 
             {/* The Real Screenshot Image */}
-            <div className="relative aspect-[16/10] w-full bg-muted/20 overflow-hidden group">
+            <div className="group relative aspect-[4/3] w-full overflow-hidden bg-muted/20 sm:aspect-[16/10]">
               <img
                 src={currentTabConfig.image}
                 alt={`${currentTabConfig.title} real product interface`}
@@ -553,7 +554,7 @@ export default function LandingPage() {
               />
 
               {/* Floating Overlay Hint on Hover */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+              <div className="absolute inset-0 hidden items-end bg-gradient-to-t from-background/90 via-transparent to-transparent p-6 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
                 <div className="flex items-center justify-between w-full bg-card/90 backdrop-blur-md rounded-xl p-4 border border-border/80 shadow-lg">
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -591,9 +592,9 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 4. VALUE PROPOSITION & TRUST METRICS -------------------- */}
-      <section className="border-y border-border/70 bg-muted/30 py-12">
+      <section className="border-y border-border/70 bg-muted/30 py-10 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
             <div className="flex flex-col gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                 <Lock className="h-5 w-5" />
@@ -638,11 +639,11 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 5. COMPREHENSIVE FEATURES GRID -------------------- */}
-      <section id="features" className="py-20 md:py-28">
+      <section id="features" className="py-14 sm:py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-16">
             <p className="text-xs font-bold uppercase tracking-wider text-primary">Engineered for Clarity</p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mt-2">
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
               Everything you need to master your money.
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
@@ -761,11 +762,11 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 6. BOOKKEEPING WORKFLOW -------------------- */}
-      <section id="workflow" className="py-20 bg-muted/40 border-y border-border/70">
+      <section id="workflow" className="border-y border-border/70 bg-muted/40 py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-16">
             <p className="text-xs font-bold uppercase tracking-wider text-primary">Intuitive Architecture</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2">
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-4xl">
               From receipt to audit statement in four calm steps.
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
@@ -773,7 +774,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 relative">
+          <div className="relative grid gap-5 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
             {/* Step 1 */}
             <div className="rounded-2xl bg-card border border-border/80 p-6 shadow-xs relative flex flex-col justify-between">
               <div>
@@ -854,20 +855,20 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 7. ZERO-KNOWLEDGE SECURITY SPOTLIGHT -------------------- */}
-      <section id="security" className="py-20 md:py-28 relative overflow-hidden">
+      <section id="security" className="relative overflow-hidden py-14 sm:py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-border/90 bg-gradient-to-br from-card via-card to-secondary/30 p-8 sm:p-12 lg:p-16 shadow-xl relative overflow-hidden">
+          <div className="relative overflow-hidden rounded-2xl border border-border/90 bg-gradient-to-br from-card via-card to-secondary/30 p-5 shadow-xl sm:rounded-3xl sm:p-12 lg:p-16">
             {/* Ambient background glow */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -z-10" />
 
-            <div className="grid gap-12 lg:grid-cols-2 items-center">
+            <div className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-6">
                   <ShieldCheck className="h-4 w-4" />
                   <span>The Ledgerly Security Contract</span>
                 </div>
 
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
+                <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                   Your money is your business. Period.
                 </h2>
 
@@ -916,15 +917,15 @@ export default function LandingPage() {
               </div>
 
               {/* Comparison Table Box */}
-              <div className="rounded-2xl border border-border/80 bg-background/90 backdrop-blur-md p-6 shadow-md">
-                <h3 className="text-base font-bold mb-4 flex items-center justify-between">
+              <div className="rounded-2xl border border-border/80 bg-background/90 p-4 shadow-md backdrop-blur-md sm:p-6">
+                <h3 className="mb-4 flex flex-col items-start gap-2 text-base font-bold sm:flex-row sm:items-center sm:justify-between">
                   <span>Privacy Architecture Comparison</span>
                   <Badge variant="outline" className="text-[11px] font-mono">
                     Zero-Knowledge
                   </Badge>
                 </h3>
 
-                <div className="divide-y divide-border/60 text-xs">
+                <div className="divide-y divide-border/60 text-[10px] sm:text-xs">
                   <div className="py-3 grid grid-cols-3 font-semibold text-muted-foreground">
                     <span>Feature</span>
                     <span className="text-center text-rose-500">Typical Apps</span>
@@ -972,14 +973,14 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 8. DOCS & ONBOARDING GUIDE SECTION (NEW) -------------------- */}
-      <section id="docs" className="py-20 md:py-28 bg-gradient-to-b from-muted/30 via-background to-muted/20 border-y border-border/80">
+      <section id="docs" className="border-y border-border/80 bg-gradient-to-b from-muted/30 via-background to-muted/20 py-14 sm:py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary mb-3">
               <FileText className="h-3.5 w-3.5" />
               <span>Getting Started & Security Setup Docs</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
               Account Registration & Zero-Knowledge Setup
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
@@ -988,7 +989,7 @@ export default function LandingPage() {
           </div>
 
           {/* 3 Step Onboarding Flow */}
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-5 sm:gap-8 lg:grid-cols-3">
             {/* Step 1: Supabase Email Confirmation */}
             <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm flex flex-col justify-between relative overflow-hidden">
               <div className="absolute top-0 left-0 h-1.5 w-full bg-cyan-500" />
@@ -1106,13 +1107,13 @@ export default function LandingPage() {
           </div>
 
           {/* Interactive Simulated Setup Box */}
-          <div className="mt-12 rounded-3xl border border-border/80 bg-card p-6 sm:p-10 shadow-lg">
+          <div className="mt-8 rounded-2xl border border-border/80 bg-card p-5 shadow-lg sm:mt-12 sm:rounded-3xl sm:p-10">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
               <div className="max-w-xl">
                 <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-foreground mb-3">
                   <span>Interactive Setup Simulation</span>
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">
+                <h3 className="text-xl font-bold text-foreground sm:text-2xl">
                   What you will see right after your first login
                 </h3>
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -1148,7 +1149,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Action Buttons: .txt Download & Copy */}
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="grid grid-cols-1 gap-2.5 pt-1 min-[380px]:grid-cols-2">
                   <Button
                     onClick={handleDownloadSampleSecret}
                     variant="outline"
@@ -1187,9 +1188,9 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 9. REPORTS SHOWCASE SECTION -------------------- */}
-      <section id="reports" className="py-20 bg-muted/30 border-y border-border/70">
+      <section id="reports" className="border-y border-border/70 bg-muted/30 py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
+          <div className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2">
             {/* Real Reports Screenshot Preview */}
             <div className="rounded-2xl border border-border/80 bg-card shadow-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 order-2 lg:order-1">
               <div className="bg-muted/50 px-4 py-2.5 border-b border-border/60 flex items-center justify-between text-xs">
@@ -1197,7 +1198,7 @@ export default function LandingPage() {
                   <FileText className="h-4 w-4 text-primary" />
                   <span className="font-bold">Real Reports & Statement Engine</span>
                 </div>
-                <span className="text-[11px] font-mono text-muted-foreground">PDF • CSV • Print</span>
+                <span className="hidden text-[11px] font-mono text-muted-foreground sm:inline">PDF • CSV • Print</span>
               </div>
               <img
                 src="/screenshots/reports.png"
@@ -1213,7 +1214,7 @@ export default function LandingPage() {
                 <span>Audit & Tax Preparedness</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+              <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-4xl">
                 Statements formatted for accountants and tax season.
               </h2>
 
@@ -1259,17 +1260,17 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center gap-3">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/demo?tab=reports"
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs sm:text-sm font-bold text-primary-foreground shadow-xs hover:bg-primary/90 transition-all"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 sm:w-auto sm:text-sm"
                 >
                   <span>Test Reports in Demo</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/signup"
-                  className="text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground px-3 py-2"
+                  className="w-full px-3 py-2 text-center text-xs font-semibold text-muted-foreground hover:text-foreground sm:w-auto sm:text-sm"
                 >
                   Create Free Account →
                 </Link>
@@ -1280,9 +1281,9 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 10. DEDICATED DEMO CTA BANNER -------------------- */}
-      <section className="py-16 md:py-20">
+      <section className="py-12 sm:py-16 md:py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-          <div className="rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/10 via-card to-card p-8 sm:p-12 shadow-lg relative overflow-hidden">
+          <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-b from-primary/10 via-card to-card p-5 shadow-lg sm:rounded-3xl sm:p-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/20 px-3.5 py-1 text-xs font-bold text-primary mb-4">
               <Sparkles className="h-3.5 w-3.5" />
               <span>Full Interactive Sandbox</span>
@@ -1317,9 +1318,9 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 11. FINAL CONVERSION CTA -------------------- */}
-      <section className="pb-24 pt-4">
+      <section className="pb-16 pt-2 sm:pb-24 sm:pt-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl bg-sidebar text-sidebar-foreground p-8 sm:p-14 lg:p-16 relative overflow-hidden shadow-2xl">
+          <div className="relative overflow-hidden rounded-2xl bg-sidebar p-5 text-sidebar-foreground shadow-2xl sm:rounded-3xl sm:p-14 lg:p-16">
             {/* Ambient glows */}
             <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-sidebar-primary/20 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl pointer-events-none" />
@@ -1330,7 +1331,7 @@ export default function LandingPage() {
                 <span>Zero Risk • Private Forever</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
+              <h2 className="text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl">
                 Take control of your finances without giving up your privacy.
               </h2>
 
@@ -1338,10 +1339,10 @@ export default function LandingPage() {
                 Join founders, freelancers, and organized households who trust Ledgerly for stress-free, client-side encrypted bookkeeping.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-2 rounded-xl bg-sidebar-primary px-8 py-4 text-base font-bold text-sidebar-primary-foreground shadow-lg hover:opacity-90 transition-all hover:scale-[1.02]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sidebar-primary px-6 py-3.5 text-sm font-bold text-sidebar-primary-foreground shadow-lg transition-all hover:opacity-90 sm:w-auto sm:px-8 sm:py-4 sm:text-base sm:hover:scale-[1.02]"
                 >
                   <span>Start Free Today</span>
                   <ArrowRight className="h-4 w-4" />
@@ -1349,7 +1350,7 @@ export default function LandingPage() {
 
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar/50 px-6 py-4 text-base font-semibold text-sidebar-foreground hover:bg-sidebar-accent transition-all"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-sidebar-border bg-sidebar/50 px-5 py-3.5 text-sm font-semibold text-sidebar-foreground transition-all hover:bg-sidebar-accent sm:w-auto sm:px-6 sm:py-4 sm:text-base"
                 >
                   <span>Existing User? Sign In</span>
                 </Link>
@@ -1375,11 +1376,11 @@ export default function LandingPage() {
       </section>
 
       {/* -------------------- 12. FOOTER -------------------- */}
-      <footer className="border-t border-border/80 bg-card/60 py-12 text-sm text-muted-foreground">
+      <footer className="border-t border-border/80 bg-card/60 py-10 text-sm text-muted-foreground sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5 pb-12 border-b border-border/60">
+          <div className="grid grid-cols-2 gap-7 border-b border-border/60 pb-10 sm:gap-8 sm:pb-12 lg:grid-cols-5">
             {/* Brand column */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="col-span-2 space-y-4 lg:col-span-2">
               <Link href="/" className="flex items-center gap-2.5">
                 <img
                   src="/Ledgerly.png"
@@ -1462,7 +1463,7 @@ export default function LandingPage() {
             </div>
 
             {/* Quick Access */}
-            <div className="space-y-3">
+            <div className="col-span-2 space-y-3 sm:col-span-1">
               <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Get Started</h4>
               <ul className="space-y-2 text-xs">
                 <li>
@@ -1490,9 +1491,9 @@ export default function LandingPage() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+          <div className="flex flex-col items-center justify-between gap-4 pt-8 text-center text-xs sm:flex-row sm:text-left">
             <p>© {new Date().getFullYear()} Ledgerly. All rights reserved.</p>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-end sm:gap-x-6">
               <span className="text-muted-foreground">Next.js 16</span>
               <span>•</span>
               <span className="text-muted-foreground">WebCrypto API</span>

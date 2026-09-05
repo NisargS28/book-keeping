@@ -22,9 +22,12 @@ export default function ForgotPasswordPage() {
     setError("")
     setLoading(true)
 
+    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "")
+    const resetPasswordUrl = `${configuredSiteUrl || window.location.origin}/reset-password`
+
     const { error: resetError } = await requestPasswordReset(
       email.trim(),
-      `${window.location.origin}/reset-password`,
+      resetPasswordUrl,
     )
 
     setLoading(false)

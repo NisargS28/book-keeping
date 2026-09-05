@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { NavigationProgress } from "@/components/navigation-progress"
+import { PasswordRecoveryRedirect } from "@/components/password-recovery-redirect"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <PasswordRecoveryRedirect />
         <NavigationProgress />
         {children}
         <Analytics />

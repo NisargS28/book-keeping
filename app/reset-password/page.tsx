@@ -8,10 +8,19 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { updatePassword } from "@/lib/auth"
+import { PASSWORD_RECOVERY_STORAGE_KEY } from "@/components/password-recovery-redirect"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+
+function getRecoveryLinkError() {
+  const searchParams = new URLSearchParams(window.location.search)
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+  const errorDescription = searchParams.get("error_description") || hashParams.get("error_description")
+
+  return errorDescription?.replace(/\+/g, " ") || ""
+}
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -21,24 +30,42 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [linkError, setLinkError] = useState("")
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setRecoverySession(true)
+    const recoveryLinkError = getRecoveryLinkError()
+    if (recoveryLinkError) {
+      sessionStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY)
+      setLinkError(recoveryLinkError)
+      setChecking(false)
+      return
+    }
+
+    const markRecoverySessionReady = () => {
+      sessionStorage.setItem(PASSWORD_RECOVERY_STORAGE_KEY, "true")
+      setRecoverySession(true)
+      setChecking(false)
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        markRecoverySessionReady()
+      }
+    })
+
+    void supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+      // Supabase may finish consuming the recovery URL before this page mounts.
+      if (sessionError) {
+        setLinkError(sessionError.message)
+      } else if (session) {
+        markRecoverySessionReady()
+        return
       }
       setChecking(false)
     })
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      // Supabase may finish consuming the recovery URL before this page mounts.
-      // A session here is still required; an anonymous direct visit remains invalid.
-      if (session) setRecoverySession(true)
-      setChecking(false)
-    })
-
-    const timeout = window.setTimeout(() => setChecking(false), 1000)
+    const timeout = window.setTimeout(() => setChecking(false), 2500)
     return () => {
       window.clearTimeout(timeout)
       subscription.unsubscribe()
@@ -66,6 +93,7 @@ export default function ResetPasswordPage() {
       return
     }
 
+    sessionStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY)
     await supabase.auth.signOut()
     router.replace("/login?passwordReset=success")
   }
@@ -77,7 +105,7 @@ export default function ResetPasswordPage() {
           <div className="flex justify-center">
             <img src="/Ledgerly.png" alt="Ledgerly" className="h-12 w-12 rounded-2xl object-cover shadow-lg shadow-primary/20" />
           </div>
-          <CardTitle className="text-2xl tracking-tight">Choose a new password</CardTitle>
+          <CardTitle className="text-2xl tracking-tight">Create new password</CardTitle>
           <CardDescription>Set a new password for signing in to Ledgerly.</CardDescription>
         </CardHeader>
         <CardContent className="px-7 pb-8 sm:px-9">
@@ -89,7 +117,7 @@ export default function ResetPasswordPage() {
           ) : !recoverySession ? (
             <div className="space-y-5 text-center">
               <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-                This password-reset link is invalid or has expired. Request a new link to continue.
+                {linkError || "This password-reset link is invalid or has expired. Request a new link to continue."}
               </div>
               <Link href="/forgot-password" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
                 <ArrowLeft className="h-4 w-4" /> Request a new reset link
