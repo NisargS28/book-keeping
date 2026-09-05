@@ -357,7 +357,7 @@ export async function getEntries(bookId: string, userId: string): Promise<Decryp
     .from('entries')
     .select('*')
     .eq('book_id', bookId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
 
   if (error) {
     console.error('Error fetching entries:', error.message)
