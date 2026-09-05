@@ -2,8 +2,13 @@
   "name": "Ledgerly - Professional Bookkeeping",
   "short_name": "Ledgerly",
   "description": "Manage multiple books, track transactions, and analyze your finances",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/books",
+  "scope": "/",
   "display": "standalone",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#ffffff",
   "theme_color": "#0879c9",
   "orientation": "portrait",

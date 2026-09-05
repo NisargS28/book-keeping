@@ -33,6 +33,7 @@ import {
   Printer,
   RefreshCw,
   Search,
+  Share2,
   Shield,
   ShieldAlert,
   ShieldCheck,
@@ -46,6 +47,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getCurrentUser } from "@/lib/auth"
 
 type ScreenshotTab = "dashboard" | "ledger" | "books" | "reports"
@@ -58,6 +60,11 @@ interface TabConfig {
   badge: string
   description: string
   demoUrl: string
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>
 }
 
 const TABS: TabConfig[] = [
@@ -106,6 +113,10 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
+  const [installInstructionsOpen, setInstallInstructionsOpen] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -128,6 +139,36 @@ export default function LandingPage() {
 
     document.documentElement.classList.toggle("dark", shouldUseDarkMode)
     setIsDarkMode(shouldUseDarkMode)
+  }, [])
+
+  useEffect(() => {
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)")
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean }
+
+    const updateInstalledState = () => {
+      setIsAppInstalled(displayModeQuery.matches || navigatorWithStandalone.standalone === true)
+    }
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+    const handleAppInstalled = () => {
+      setInstallPrompt(null)
+      setInstallInstructionsOpen(false)
+      setIsAppInstalled(true)
+    }
+
+    setIsIOS(/iphone|ipad|ipod/i.test(window.navigator.userAgent))
+    updateInstalledState()
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+    window.addEventListener("appinstalled", handleAppInstalled)
+    displayModeQuery.addEventListener("change", updateInstalledState)
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+      window.removeEventListener("appinstalled", handleAppInstalled)
+      displayModeQuery.removeEventListener("change", updateInstalledState)
+    }
   }, [])
 
   const currentTabConfig = TABS.find((t) => t.id === activeTab) || TABS[0]
@@ -162,6 +203,23 @@ export default function LandingPage() {
     document.documentElement.classList.toggle("dark", nextIsDarkMode)
     localStorage.setItem("theme", nextIsDarkMode ? "dark" : "light")
     setIsDarkMode(nextIsDarkMode)
+  }
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) {
+      setInstallInstructionsOpen(true)
+      return
+    }
+
+    try {
+      await installPrompt.prompt()
+      const choice = await installPrompt.userChoice
+      if (choice.outcome === "accepted") {
+        setIsAppInstalled(true)
+      }
+    } finally {
+      setInstallPrompt(null)
+    }
   }
 
   return (
@@ -383,7 +441,7 @@ export default function LandingPage() {
           </p>
 
           {/* Hero CTAs */}
-          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
+          <div className="mt-8 sm:mt-10 flex max-w-2xl flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4 mx-auto">
             <Link
               href="/signup"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm sm:text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 transition-all"
@@ -399,6 +457,18 @@ export default function LandingPage() {
               <Sparkles className="h-4 w-4 text-primary group-hover:rotate-12 transition-transform" />
               <span>Explore Live Demo</span>
             </Link>
+
+            {!isAppInstalled && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleInstallApp}
+                className="h-auto w-full rounded-xl border-2 px-6 py-3.5 text-sm font-bold shadow-sm sm:w-auto sm:text-base"
+              >
+                <Download className="h-4 w-4" />
+                Install App
+              </Button>
+            )}
           </div>
 
           {/* Micro Reassurances */}
@@ -665,14 +735,26 @@ export default function LandingPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 mb-5 group-hover:scale-110 transition-transform">
                 <Smartphone className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-bold text-foreground">Installable PWA & Offline Access</h3>
+              <h3 className="text-lg font-bold text-foreground">Installable PWA</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Install Ledgerly directly onto your iPhone, Android, or desktop. Enjoy a smooth app-like experience with zero app store middleman fees.
+                Install Ledgerly directly onto your iPhone, Android, or desktop. Enjoy a smooth app-like experience.
               </p>
               <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-violet-600">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>Offline Cache & Instant Launch</span>
               </div>
+              {!isAppInstalled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInstallApp}
+                  className="mt-5 gap-2 border-violet-500/40 text-violet-700 hover:bg-violet-500/10 dark:text-violet-300"
+                >
+                  <Download className="h-4 w-4" />
+                  Install App
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -1422,6 +1504,39 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <Dialog open={installInstructionsOpen} onOpenChange={setInstallInstructionsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Install Ledgerly</DialogTitle>
+            <DialogDescription>
+              Add Ledgerly to your home screen for quick access and an app-like experience.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl border border-border/80 bg-muted/50 p-4">
+            {isIOS ? (
+              <div className="flex items-start gap-3">
+                <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <p className="text-sm leading-relaxed text-foreground">
+                  In Safari, tap the Share button, then choose <strong>Add to Home Screen</strong>.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <Download className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <p className="text-sm leading-relaxed text-foreground">
+                  Open your browser menu, then choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Button type="button" onClick={() => setInstallInstructionsOpen(false)}>
+            Got it
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
