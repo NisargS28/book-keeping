@@ -23,7 +23,6 @@ import {
   Filter,
   Clock,
   User,
-  ChevronRight,
   Calendar,
   X,
   FileText,
@@ -850,15 +849,43 @@ function LedgerContent({ bookId }: { bookId: string }) {
                               </div>
                             </div>
 
-                            {/* Bottom Row: Running Balance & Tap Prompt */}
+                            {/* Bottom Row: Running Balance & Mobile Actions */}
                             <div className="flex items-center justify-between border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
                               <span className="font-medium">
                                 Bal: <strong className="text-foreground/90">{formatCurrency(entry.runningBalance)}</strong>
                               </span>
-                              <span className="flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
-                                Details
-                                <ChevronRight className="h-3 w-3" />
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-[11px]"
+                                  aria-label={`Edit ${entry.description}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleEdit(entry)
+                                  }}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 gap-1 px-2 text-[11px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  aria-label={`Delete ${entry.description}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleActionSelect(entry, "delete")
+                                  }}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )
@@ -1083,7 +1110,7 @@ function LedgerContent({ bookId }: { bookId: string }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {mounted && !entryDialogOpen && createPortal(
+      {mounted && !entryDialogOpen && !detailSheetOpen && !actionsSheetOpen && !targetBookDialogOpen && !deleteDialogOpen && !filterSheetOpen && createPortal(
         <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-border/80 bg-card/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-xl">
           <div className="mx-auto flex max-w-md items-center gap-2">
             <Button onClick={handleAddCashIn} className="h-11 flex-1 gap-2 bg-success font-semibold hover:bg-success/90">
