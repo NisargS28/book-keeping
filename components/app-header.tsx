@@ -171,11 +171,16 @@ export function AppHeader({ activeBookId, onBookChange }: AppHeaderProps) {
             </DropdownMenuItem>
 
             <DropdownMenuItem
-              className="cursor-pointer gap-2"
-              onClick={() => router.push("/settings?tab=whatsapp")}
+              disabled
+              className="gap-2 py-2"
             >
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <span>WhatsApp Integration</span>
+              <span className="flex flex-col">
+                <span>WhatsApp Integration</span>
+                <span className="text-[10px] font-normal text-muted-foreground">
+                  Temporarily not available
+                </span>
+              </span>
             </DropdownMenuItem>
 
             <DropdownMenuItem

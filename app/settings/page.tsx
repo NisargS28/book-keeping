@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppHeader } from "@/components/app-header"
 import { AuthGuard } from "@/components/auth-guard"
-import { getCurrentUser, logout, updateUserProfile, linkWhatsAppPhone } from "@/lib/auth"
+import { getCurrentUser, logout, updateUserProfile } from "@/lib/auth"
 import {
   getBooks,
   getActiveBookId,
@@ -33,7 +33,6 @@ import {
   Plus,
   ArrowLeft,
   User,
-  MessageSquare,
   Tag,
   Palette,
   ShieldCheck,
@@ -48,10 +47,16 @@ import {
 import { Category } from "@/lib/types"
 import { regenerateRecoverySecret, changeEncryptionPassphrase } from "@/lib/encryption"
 
+const SETTINGS_TABS = new Set(["profile", "security", "categories", "general"])
+
+function getSettingsTab(tab: string | null) {
+  return tab && SETTINGS_TABS.has(tab) ? tab : "profile"
+}
+
 function SettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const tabParam = searchParams.get("tab") || "profile"
+  const tabParam = getSettingsTab(searchParams.get("tab"))
 
   const [activeTab, setActiveTab] = useState<string>(tabParam)
   const [user, setUser] = useState<any>(null)
@@ -78,13 +83,6 @@ function SettingsContent() {
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null)
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false)
   const [deletingCategory, setDeletingCategory] = useState(false)
-
-  // WhatsApp linking state
-  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false)
-  const [whatsappPhone, setWhatsappPhone] = useState("")
-  const [currentWhatsappPhone, setCurrentWhatsappPhone] = useState<string | null>(null)
-  const [savingWhatsApp, setSavingWhatsApp] = useState(false)
-  const [whatsappError, setWhatsappError] = useState("")
 
   // Security / Encryption state
   const [regenDialogOpen, setRegenDialogOpen] = useState(false)
@@ -120,22 +118,11 @@ function SettingsContent() {
       setEditDisplayName(currentUser.displayName || currentUser.email || "")
       setEditProfileImage(currentUser.profileImage || "")
       
-      // Load WhatsApp phone if available
-      const { supabase } = await import("@/lib/supabase")
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("whatsapp_phone")
-        .eq("id", currentUser.id)
-        .single()
-      
-      if (profile?.whatsapp_phone) {
-        const cleanPhone = profile.whatsapp_phone.replace("whatsapp:", "")
-        setCurrentWhatsappPhone(cleanPhone)
-      }
-
       const books = await getBooks(currentUser.id)
       if (books.length === 0) {
-        router.push("/books")
+        setActiveBookIdState(null)
+        setCategories([])
+        setLoading(false)
         return
       }
 
@@ -203,59 +190,6 @@ function SettingsContent() {
       setProfileError(error?.message || "Failed to update profile.")
     } finally {
       setSavingProfile(false)
-    }
-  }
-
-  const handleLinkWhatsApp = async () => {
-    if (!user || !whatsappPhone.trim()) {
-      setWhatsappError("Please enter a valid WhatsApp number")
-      return
-    }
-
-    try {
-      setSavingWhatsApp(true)
-      setWhatsappError("")
-      
-      let formattedPhone = whatsappPhone.trim()
-      if (formattedPhone.startsWith("whatsapp:")) {
-        formattedPhone = formattedPhone.replace("whatsapp:", "")
-      }
-      if (!formattedPhone.startsWith("+")) {
-        formattedPhone = "+" + formattedPhone
-      }
-
-      const result = await linkWhatsAppPhone(user.id, formattedPhone)
-      if (result.error) {
-        throw new Error(result.error.message)
-      }
-      
-      setCurrentWhatsappPhone(formattedPhone)
-      setWhatsappDialogOpen(false)
-      setWhatsappPhone("")
-    } catch (error: any) {
-      console.error("Error linking WhatsApp:", error)
-      setWhatsappError(error?.message || "Failed to link WhatsApp number.")
-    } finally {
-      setSavingWhatsApp(false)
-    }
-  }
-
-  const handleUnlinkWhatsApp = async () => {
-    if (!user) return
-
-    try {
-      setSavingWhatsApp(true)
-      setWhatsappError("")
-      const result = await linkWhatsAppPhone(user.id, "")
-      if (result.error) {
-        throw new Error(result.error.message)
-      }
-      setCurrentWhatsappPhone(null)
-    } catch (error: any) {
-      console.error("Error unlinking WhatsApp:", error)
-      setWhatsappError(error?.message || "Failed to unlink WhatsApp number.")
-    } finally {
-      setSavingWhatsApp(false)
     }
   }
 
@@ -383,7 +317,7 @@ function SettingsContent() {
     }
   }
 
-  if (loading || !activeBookId) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading settings...</p>
@@ -406,12 +340,12 @@ function SettingsContent() {
             </Button>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
-              <p className="text-sm text-muted-foreground">Manage your profile, integrations, and preferences</p>
+              <p className="text-sm text-muted-foreground">Manage your profile, security, categories, and preferences</p>
             </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile" className="text-xs md:text-sm gap-1.5">
                 <User className="h-4 w-4 hidden sm:inline" />
                 Profile
@@ -419,10 +353,6 @@ function SettingsContent() {
               <TabsTrigger value="security" className="text-xs md:text-sm gap-1.5">
                 <ShieldCheck className="h-4 w-4 hidden sm:inline text-primary" />
                 Security
-              </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="text-xs md:text-sm gap-1.5">
-                <MessageSquare className="h-4 w-4 hidden sm:inline" />
-                WhatsApp
               </TabsTrigger>
               <TabsTrigger value="categories" className="text-xs md:text-sm gap-1.5">
                 <Tag className="h-4 w-4 hidden sm:inline" />
@@ -749,84 +679,6 @@ function SettingsContent() {
               </Dialog>
             </TabsContent>
 
-            {/* WhatsApp Tab */}
-            <TabsContent value="whatsapp" className="space-y-4 mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5 text-success" />
-                    WhatsApp Integration
-                  </CardTitle>
-                  <CardDescription>Add income and expense entries instantly via WhatsApp</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {currentWhatsappPhone ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3.5 bg-success/10 border border-success/30 rounded-xl">
-                        <div>
-                          <p className="text-sm font-semibold text-success">Connected</p>
-                          <p className="text-xs text-foreground font-mono">{currentWhatsappPhone}</p>
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleUnlinkWhatsApp}
-                          disabled={savingWhatsApp}
-                        >
-                          {savingWhatsApp ? "Unlinking..." : "Unlink"}
-                        </Button>
-                      </div>
-                      <div className="p-4 bg-muted/60 border border-border/80 rounded-xl space-y-2 text-xs">
-                        <p className="font-semibold text-foreground">How to send transactions:</p>
-                        <ol className="text-muted-foreground space-y-1.5 list-decimal list-inside">
-                          <li>Send <code className="bg-muted px-1 py-0.5 rounded font-mono">join refer-sick</code> to <strong>+14155238886</strong> for sandbox access.</li>
-                          <li>Message format: <code className="bg-muted px-1 py-0.5 rounded font-mono">BookName, income/expense, amount, category, payment mode, description</code></li>
-                          <li>Example: <code className="bg-muted px-1 py-0.5 rounded font-mono">Personal, income, 5000, Salary, Bank, Monthly salary</code></li>
-                        </ol>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-xs text-muted-foreground">
-                        Link your WhatsApp number to record expenses and income on the go.
-                      </p>
-                      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-                        <Button onClick={() => setWhatsappDialogOpen(true)} className="w-full">
-                          Link WhatsApp Number
-                        </Button>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Link WhatsApp Number</DialogTitle>
-                            <DialogDescription>
-                              Enter your phone number including country code (e.g. +919876543210)
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <label className="text-xs font-semibold text-muted-foreground mb-1 block">Phone Number</label>
-                              <Input
-                                placeholder="+919876543210"
-                                value={whatsappPhone}
-                                onChange={(e) => setWhatsappPhone(e.target.value)}
-                              />
-                            </div>
-                            {whatsappError && (
-                              <div className="text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
-                                {whatsappError}
-                              </div>
-                            )}
-                            <Button onClick={handleLinkWhatsApp} disabled={savingWhatsApp} className="w-full">
-                              {savingWhatsApp ? "Linking..." : "Link Number"}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             {/* Categories Tab */}
             <TabsContent value="categories" className="space-y-4 mt-4">
               <Card>
@@ -836,7 +688,12 @@ function SettingsContent() {
                     <CardDescription>Custom categories for your current active book</CardDescription>
                   </div>
                   <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                    <Button onClick={() => setCategoryDialogOpen(true)} size="sm" className="gap-1.5">
+                    <Button
+                      onClick={() => setCategoryDialogOpen(true)}
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={!activeBookId}
+                    >
                       <Plus className="h-4 w-4" />
                       Add Category
                     </Button>
@@ -874,37 +731,47 @@ function SettingsContent() {
                   </Dialog>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {categories.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-6">No custom categories found.</p>
-                    ) : (
-                      categories.map((cat) => (
-                        <div
-                          key={cat.id}
-                          className="flex items-center justify-between p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className="h-3 w-3 rounded-full shadow-sm"
-                              style={{ backgroundColor: cat.color }}
-                            />
-                            <span className="font-semibold text-sm">{cat.name}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setCategoryToDelete(cat.id)
-                              setDeleteCategoryDialogOpen(true)
-                            }}
-                            className="text-muted-foreground hover:text-destructive"
+                  {!activeBookId ? (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
+                      <p className="text-sm font-semibold">Create a book to manage categories</p>
+                      <p className="text-xs text-muted-foreground">
+                        Categories belong to a specific book. Your profile, security, and appearance settings are still available.
+                      </p>
+                      <Button size="sm" onClick={() => router.push("/books")}>Create a Book</Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {categories.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-6">No custom categories found.</p>
+                      ) : (
+                        categories.map((cat) => (
+                          <div
+                            key={cat.id}
+                            className="flex items-center justify-between p-3 rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className="h-3 w-3 rounded-full shadow-sm"
+                                style={{ backgroundColor: cat.color }}
+                              />
+                              <span className="font-semibold text-sm">{cat.name}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setCategoryToDelete(cat.id)
+                                setDeleteCategoryDialogOpen(true)
+                              }}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
